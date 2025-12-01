@@ -25,6 +25,22 @@ pub fn part1(input: &str) -> String {
     format!("{}", zero_counter)
 }
 
+pub fn part2(input: &str) -> String {
+    let mut dial: i32 = 50;
+    let mut zero_counter: u32 = 0;
+
+    for rot in input.lines() {
+        let i = parse_rot_i32(rot).unwrap();
+        println!("rotating {}...", i);
+        let (d, z) = turn_wrap_and_count_zeros(dial, i);
+        println!("new dial: {}, zero crossings: {}", d, z);
+        dial = d;
+        zero_counter += z;
+    }
+
+    format!("{}", zero_counter)
+}
+
 #[derive(PartialEq, Debug)]
 struct ParseError;
 
@@ -52,20 +68,78 @@ fn wrap100(mut v: i32) -> i32 {
     v % 100
 }
 
+/// This doesn't work the way we want!
+fn wrap100_and_count_zeroes(mut v: i32) -> (i32, u32) {
+    let mut zeroes = 0_u32;
+    while v < 0 {
+        v += 100;
+        zeroes += 1;
+    }
+    zeroes += v.div_euclid(100) as u32;
+    let rem = v.rem_euclid(100);
+    (rem, zeroes)
+}
+
+fn turn_wrap_and_count_zeros(start: i32, turn: i32) -> (i32, u32) {
+    let mut zeroes = 0_u32;
+    let mut v = start + turn;
+    while v < 0 {
+        v += 100;
+        zeroes += 1;
+    }
+    zeroes += v.div_euclid(100) as u32;
+    let rem = v.rem_euclid(100);
+    // ...can we just treat starting-0 and left turn and not landing on 0 as a degenerate case?
+    if start == 0 && rem != 0 && turn < 0 {
+        zeroes = zeroes.saturating_sub(1);
+    }
+    (rem, zeroes)
+}
+
+#[test]
+fn turn_wrap_count_test() {
+    assert_eq!(turn_wrap_and_count_zeros(0, 100), (0, 1));
+    assert_eq!(turn_wrap_and_count_zeros(1, 50), (51, 0));
+    assert_eq!(turn_wrap_and_count_zeros(0, -50), (50, 0));
+    assert_eq!(turn_wrap_and_count_zeros(0, -100), (0, 1));
+
+    assert_eq!(turn_wrap_and_count_zeros(50, -68), (82, 1));
+    assert_eq!(turn_wrap_and_count_zeros(82, -30), (52, 0));
+    assert_eq!(turn_wrap_and_count_zeros(52, 48), (0, 1));
+}
+
+#[test]
+fn wrap_count_test() {
+    assert_eq!(wrap100_and_count_zeroes(50), (50, 0));
+    assert_eq!(wrap100_and_count_zeroes(-50), (50, 1));
+    assert_eq!(wrap100_and_count_zeroes(100), (0, 1));
+    assert_eq!(wrap100_and_count_zeroes(201), (1, 2));
+
+    assert_eq!(wrap100_and_count_zeroes(50 - 68), (82, 1));
+    // tricky tricky tricky -- it STARTED at 0 so it didn't pass 0 on this rotation. This assert fails:
+    // assert_eq!(wrap100_and_count_zeroes(0 - 5), (95, 0));
+}
+
+const TEST_INPUTS: &str = "L68
+L30
+R48
+L5
+R60
+L55
+L1
+L99
+R14
+L82
+";
+
 #[test]
 fn part1_test() {
-    let input = "L68
-    L30
-    R48
-    L5
-    R60
-    L55
-    L1
-    L99
-    R14
-    L82
-";
-    assert_eq!(part1(input), "3".to_string());
+    assert_eq!(part1(TEST_INPUTS), "3".to_string());
+}
+
+#[test]
+fn part2_test() {
+    assert_eq!(part2(TEST_INPUTS), "6".to_string());
 }
 
 #[test]
