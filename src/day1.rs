@@ -6,6 +6,33 @@ pub fn part1(input: &str) -> String {
     "lol".to_string()
 }
 
+#[derive(PartialEq, Debug)]
+struct ParseError;
+
+fn parse_rot_i32(rot: &str) -> Result<i32, ParseError> {
+    let Some((dir, num)) = rot.split_at_checked(1) else {
+        return Err(ParseError);
+    };
+    // requiring uppercase
+    let signum = match dir {
+        "R" => 1,
+        "L" => -1,
+        _ => {
+            return Err(ParseError);
+        }
+    };
+    let parsed_num = num.parse::<i32>().map_err(|_| ParseError)?;
+
+    Ok(signum * parsed_num)
+}
+
+fn wrap100(mut v: i32) -> i32 {
+    while v < 0 {
+        v += 100;
+    }
+    v % 100
+}
+
 #[test]
 fn part1_test() {
     let input = "L68
@@ -20,4 +47,22 @@ fn part1_test() {
     L82
 ";
     assert_eq!(part1(input), "3".to_string());
+}
+
+#[test]
+fn mod100() {
+    assert_eq!(100_i32 % 100, 0);
+    assert_eq!(-101_i32 % 100, -1);
+    assert_eq!(-0_i32, 0);
+    // assert_eq!(((50_i32 - 68) % 100).abs(), 82); // it's 18!
+    assert_eq!(wrap100(50_i32 - 68), 82);
+}
+
+#[test]
+fn parser() {
+    assert_eq!(parse_rot_i32("L30"), Ok(-30));
+    assert_eq!(parse_rot_i32("L101"), Ok(-101));
+    assert_eq!(parse_rot_i32("R14"), Ok(14));
+    assert!(parse_rot_i32("r14").is_err());
+    assert!(parse_rot_i32("14").is_err());
 }
