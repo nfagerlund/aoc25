@@ -90,8 +90,11 @@ fn turn_wrap_and_count_zeros(start: i32, turn: i32) -> (i32, u32) {
     zeroes += v.div_euclid(100) as u32;
     let rem = v.rem_euclid(100);
     // ...can we just treat starting-0 and left turn and not landing on 0 as a degenerate case?
+    // nope, we need another degenerate case of left turn landing on zero.
     if start == 0 && rem != 0 && turn < 0 {
         zeroes = zeroes.saturating_sub(1);
+    } else if turn < 0 && turn > -100 && rem == 0 {
+        zeroes += 1;
     }
     (rem, zeroes)
 }
@@ -106,6 +109,8 @@ fn turn_wrap_count_test() {
     assert_eq!(turn_wrap_and_count_zeros(50, -68), (82, 1));
     assert_eq!(turn_wrap_and_count_zeros(82, -30), (52, 0));
     assert_eq!(turn_wrap_and_count_zeros(52, 48), (0, 1));
+    assert_eq!(turn_wrap_and_count_zeros(16, -16), (0, 1));
+    assert_eq!(turn_wrap_and_count_zeros(16, -116), (0, 2));
 }
 
 #[test]
