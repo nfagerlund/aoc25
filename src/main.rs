@@ -1,5 +1,25 @@
 mod day1;
 
 fn main() {
-    println!("Hello, world!");
+    let mut args = std::env::args();
+    args.next();
+    let puzzle = args.next().expect("Requires a puzzle argument, e.g. `1-1`");
+    let output = match puzzle.as_str() {
+        "1-1" => {
+            let input =
+                std::fs::read_to_string("inputs/1-1.txt").expect("can't find inputs for 1-1");
+            day1::part1(&input)
+        }
+        _ => "Can't find anything to run".to_string(),
+    };
+
+    println!("got output:\n{}", &output);
+}
+
+#[test]
+fn args() {
+    for a in std::env::args() {
+        println!("{}", a);
+    }
+    // panic!();
 }

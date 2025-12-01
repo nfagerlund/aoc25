@@ -2,15 +2,34 @@ use std::fs;
 
 // let's do a standard interface: dayN::partM(&str) -> String
 // I figure most answers will probably be ints? but can't fully predict.
+
+/// Apply the supplied rotations to a wrapping 100-tick dial (labeled 0-99), and
+/// count how many times the dial stops at 0.
 pub fn part1(input: &str) -> String {
-    "lol".to_string()
+    // dial starts at 50
+    let mut dial: i32 = 50;
+    let mut zero_counter: u32 = 0;
+
+    for rot in input.lines() {
+        // oh right, gotta pipe err handling further back...
+        let i = parse_rot_i32(rot).unwrap();
+        println!("rotating {}...", i);
+        dial += i;
+        dial = wrap100(dial);
+        println!("dial: {}", dial);
+        if dial == 0 {
+            zero_counter += 1;
+        }
+    }
+
+    format!("{}", zero_counter)
 }
 
 #[derive(PartialEq, Debug)]
 struct ParseError;
 
 fn parse_rot_i32(rot: &str) -> Result<i32, ParseError> {
-    let Some((dir, num)) = rot.split_at_checked(1) else {
+    let Some((dir, num)) = rot.trim().split_at_checked(1) else {
         return Err(ParseError);
     };
     // requiring uppercase
