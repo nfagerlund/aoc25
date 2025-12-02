@@ -11,6 +11,10 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
     sum.map(|i| format!("{}", i)).ok_or(anyhow!("lol"))
 }
 
+pub fn part2(input: &str) -> Result<String, anyhow::Error> {
+    Err(anyhow!("ugh??"))
+}
+
 #[test]
 fn part1_test() {
     assert_eq!(
@@ -19,8 +23,20 @@ fn part1_test() {
     );
 }
 
+#[test]
+fn part_2_test() {
+    assert_eq!(
+        part2(_EXAMPLE).expect("should ok"),
+        "4174379265".to_string()
+    );
+}
+
 const _EXAMPLE: &str = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124";
 const _EXAMPLE_PER_ITEM_PART1_COUNTS: [u64; 11] = [2, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0];
+const _EXAMPLE_PER_ITEM_PART2_COUNTS: [u64; 11] = [2, 2, 2, 1, 1, 0, 1, 1, 1, 1, 1];
+
+// new rules for part two: identify numbers made only of sequences repeated
+// _any_ number of times, not just twice. So like 824824824 qualifies.
 
 /// Returns the sum of the repeated sequence numbers within the given range.
 fn process_range_part1(r: RangeInclusive<u64>) -> u64 {
