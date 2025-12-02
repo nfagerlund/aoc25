@@ -1,5 +1,3 @@
-use std::fs;
-
 // let's do a standard interface: dayN::partM(&str) -> String
 // I figure most answers will probably be ints? but can't fully predict.
 
@@ -69,7 +67,7 @@ fn wrap100(mut v: i32) -> i32 {
 }
 
 /// This doesn't work the way we want!
-fn wrap100_and_count_zeroes(mut v: i32) -> (i32, u32) {
+fn _wrap100_and_count_zeroes(mut v: i32) -> (i32, u32) {
     let mut zeroes = 0_u32;
     while v < 0 {
         v += 100;
@@ -81,7 +79,7 @@ fn wrap100_and_count_zeroes(mut v: i32) -> (i32, u32) {
 }
 
 fn turn_wrap_and_count_zeros(start: i32, mut turn: i32) -> (i32, u32) {
-    if start < 0 || start > 99 {
+    if !(0..=99).contains(&start) {
         panic!("Invalid dial position.");
     }
     if turn == 0 {
@@ -104,7 +102,7 @@ fn turn_wrap_and_count_zeros(start: i32, mut turn: i32) -> (i32, u32) {
         };
         dial += first_bite;
         turn -= first_bite;
-        dial = dial % 100;
+        dial %= 100;
         if dial == 0 {
             // we made it
             zeroes += 1;
@@ -146,16 +144,17 @@ fn turn_wrap_count_test() {
 
 #[test]
 fn wrap_count_test() {
-    assert_eq!(wrap100_and_count_zeroes(50), (50, 0));
-    assert_eq!(wrap100_and_count_zeroes(-50), (50, 1));
-    assert_eq!(wrap100_and_count_zeroes(100), (0, 1));
-    assert_eq!(wrap100_and_count_zeroes(201), (1, 2));
+    assert_eq!(_wrap100_and_count_zeroes(50), (50, 0));
+    assert_eq!(_wrap100_and_count_zeroes(-50), (50, 1));
+    assert_eq!(_wrap100_and_count_zeroes(100), (0, 1));
+    assert_eq!(_wrap100_and_count_zeroes(201), (1, 2));
 
-    assert_eq!(wrap100_and_count_zeroes(50 - 68), (82, 1));
+    assert_eq!(_wrap100_and_count_zeroes(50 - 68), (82, 1));
     // tricky tricky tricky -- it STARTED at 0 so it didn't pass 0 on this rotation. This assert fails:
     // assert_eq!(wrap100_and_count_zeroes(0 - 5), (95, 0));
 }
 
+#[allow(dead_code)]
 const TEST_INPUTS: &str = "L68
 L30
 R48
