@@ -80,23 +80,53 @@ fn wrap100_and_count_zeroes(mut v: i32) -> (i32, u32) {
     (rem, zeroes)
 }
 
-fn turn_wrap_and_count_zeros(start: i32, turn: i32) -> (i32, u32) {
+fn turn_wrap_and_count_zeros(start: i32, mut turn: i32) -> (i32, u32) {
+    if start < 0 || start > 99 {
+        panic!("Invalid dial position.");
+    }
+    if turn == 0 {
+        // No movement to do
+        return (start, 0);
+    }
+
     let mut zeroes = 0_u32;
-    let mut v = start + turn;
-    while v < 0 {
-        v += 100;
+    let mut dial = start;
+
+    // Ok we're moving. First, spend as much of the turn as necessary to move
+    // the dial to 0 (if we have enough). If we make it, that's our first zero.
+    if start != 0 {
+        // Say we're at 16. If turn is negative, we want -16. If turn is positive, we want +84.
+        let first_bite = if turn > 0 {
+            (100 - start).min(turn)
+        } else {
+            // negative numbers making min/max funky. In both branches, we want the smallest abs.
+            (-start).max(turn)
+        };
+        dial += first_bite;
+        turn -= first_bite;
+        dial = dial % 100;
+        if dial == 0 {
+            // we made it
+            zeroes += 1;
+        }
+    }
+
+    // Now we can spend the rest of the turn, first in zero-ing increments...
+    while turn <= -100 {
+        turn += 100;
         zeroes += 1;
     }
-    zeroes += v.div_euclid(100) as u32;
-    let rem = v.rem_euclid(100);
-    // ...can we just treat starting-0 and left turn and not landing on 0 as a degenerate case?
-    // nope, we need another degenerate case of left turn landing on zero.
-    if start == 0 && rem != 0 && turn < 0 {
-        zeroes = zeroes.saturating_sub(1);
-    } else if turn < 0 && turn > -100 && rem == 0 {
+    while turn >= 100 {
+        turn -= 100;
         zeroes += 1;
     }
-    (rem, zeroes)
+    // ...then in the remainder.
+    dial += turn;
+    if dial < 0 {
+        dial += 100;
+    }
+
+    (dial, zeroes)
 }
 
 #[test]
@@ -111,6 +141,7 @@ fn turn_wrap_count_test() {
     assert_eq!(turn_wrap_and_count_zeros(52, 48), (0, 1));
     assert_eq!(turn_wrap_and_count_zeros(16, -16), (0, 1));
     assert_eq!(turn_wrap_and_count_zeros(16, -116), (0, 2));
+    assert_eq!(turn_wrap_and_count_zeros(16, -115), (1, 1));
 }
 
 #[test]
