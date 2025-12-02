@@ -4,7 +4,7 @@ use std::ops::RangeInclusive;
 pub fn part1(input: &str) -> Result<String, anyhow::Error> {
     let sum = input
         .split(',')
-        .filter_map(|txt| parse_range(txt).ok())
+        .map(|txt| parse_range(txt).expect("hey what the..."))
         .map(process_range_part1)
         .reduce(|acc, e| acc + e);
 
@@ -46,7 +46,7 @@ fn process_range_part1(r: RangeInclusive<u64>) -> u64 {
 
 fn parse_range(txt: &str) -> Result<RangeInclusive<u64>, anyhow::Error> {
     let (first, second) = txt.split_once('-').ok_or(anyhow!("not hyphenated pair"))?;
-    let (start, end) = (first.parse::<u64>()?, second.parse::<u64>()?);
+    let (start, end) = (first.trim().parse::<u64>()?, second.trim().parse::<u64>()?);
 
     Ok(start..=end)
 }
