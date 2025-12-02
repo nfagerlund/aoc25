@@ -24,17 +24,22 @@ const _EXAMPLE_PER_ITEM_PART1_COUNTS: [u64; 11] = [2, 1, 1, 1, 1, 0, 1, 1, 0, 0,
 
 /// Returns the sum of the repeated sequence numbers within the given range.
 fn process_range_part1(r: RangeInclusive<u64>) -> u64 {
+    println!("testing {:?}", &r);
     let start = *r.start();
+    let end = *r.end();
     let mut repeat_seq = first_repeatable_digit_sequence_from(start);
     let mut sum = 0;
     loop {
         let v = repeat_digits(repeat_seq);
-        // Have we gone past the end of the range yet?
-        if !r.contains(&v) {
+        if r.contains(&v) {
+            sum += v;
+        } else if v > end {
+            // we went past the end of the range. (If we're before the range,
+            // like say it started at 1381 and 1313 is too low, keep trying.)
             break;
         }
-        sum += v;
         repeat_seq += 1;
+        println!("  found: {}", v);
     }
     sum
 }
