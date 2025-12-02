@@ -11,10 +11,10 @@ pub fn part1(input: &str) -> String {
     for rot in input.lines() {
         // oh right, gotta pipe err handling further back...
         let i = parse_rot_i32(rot).unwrap();
-        println!("rotating {}...", i);
+        // println!("rotating {}...", i);
         dial += i;
         dial = wrap100(dial);
-        println!("dial: {}", dial);
+        // println!("dial: {}", dial);
         if dial == 0 {
             zero_counter += 1;
         }
@@ -29,9 +29,9 @@ pub fn part2(input: &str) -> String {
 
     for rot in input.lines() {
         let i = parse_rot_i32(rot).unwrap();
-        println!("rotating {}...", i);
+        // println!("rotating {}...", i);
         let (d, z) = turn_wrap_and_count_zeros(dial, i);
-        println!("new dial: {}, zero crossings: {}", d, z);
+        // println!("new dial: {}, zero crossings: {}", d, z);
         dial = d;
         zero_counter += z;
     }
@@ -110,14 +110,9 @@ fn turn_wrap_and_count_zeros(start: i32, mut turn: i32) -> (i32, u32) {
     }
 
     // Now we can spend the rest of the turn, first in zero-ing increments...
-    while turn <= -100 {
-        turn += 100;
-        zeroes += 1;
-    }
-    while turn >= 100 {
-        turn -= 100;
-        zeroes += 1;
-    }
+    let signed_full_turns = turn / 100;
+    zeroes += signed_full_turns.unsigned_abs();
+    turn -= signed_full_turns * 100;
     // ...then in the remainder.
     dial += turn;
     if dial < 0 {
