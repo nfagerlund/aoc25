@@ -10,6 +10,11 @@ fn main() {
                 std::fs::read_to_string("inputs/1.txt").expect("can't find inputs for day 1");
             day1::part1(&input)
         }
+        "1-2" => {
+            let input =
+                std::fs::read_to_string("inputs/1.txt").expect("can't find inputs for day 1");
+            day1::part2(&input)
+        }
         _ => "Can't find anything to run".to_string(),
     };
 
