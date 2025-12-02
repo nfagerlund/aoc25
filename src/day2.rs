@@ -8,6 +8,10 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
 const _EXAMPLE: &str = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124";
 const _EXAMPLE_PER_ITEM_PART1_COUNTS: [u32; 11] = [2, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0];
 
+// fn process_range_part1(r: RangeInclusive<u32>) -> u32 {
+//     let initial = *r.start();
+// }
+
 fn parse_range(txt: &str) -> Result<RangeInclusive<u32>, anyhow::Error> {
     let (first, second) = txt.split_once('-').ok_or(anyhow!("not hyphenated pair"))?;
     let (start, end) = (first.parse::<u32>()?, second.parse::<u32>()?);
@@ -25,7 +29,45 @@ fn parse_range(txt: &str) -> Result<RangeInclusive<u32>, anyhow::Error> {
 // * 998 -> odd. proceed to even. -> 1000 -> [10]00 -> range.includes(1010)? -> increment: [11]
 // -> range.includes(1111)? NO.
 // * ...
-//
+
+// We need a way to use the digits iterator to extract a repeatable sequence
+// from the first half of a number.
+// Say we have eight digits, 54298345. We want 5429. We get the half-count (4).
+// We take first digit (5) and multiply it by 10^3, then add 4 * 10^2...
+fn first_repeatable_digit_sequence_from(start: u32) -> u32 {
+    let even = first_even_digited_number_from(start);
+    let half_count = digits(even).count() / 2;
+    let mut power = (half_count - 1) as u32;
+    let mut total = 0_u32;
+    for digit in digits(even) {
+        total += digit * 10_u32.pow(power);
+        if power == 0 {
+            // that was the ones.
+            break;
+        }
+        power -= 1;
+    }
+    total
+}
+
+// We need a way to find the next even-digited number, given a starting number.
+// * if n % 2 == 0, n.
+// * ...say we have 301... we want 1000. 301.ilog10() = 2, 10^2 = 100, so we want 10^3
+// * else, 10.pow(n.ilog10() + 1)
+
+/// Like the name says. But 0 returns 0, so take note.
+fn first_even_digited_number_from(start: u32) -> u32 {
+    let dig_count = digits(start).count();
+    // degenerate case: count == 1 but can't ilog10
+    if start == 0 {
+        10
+    } else if dig_count.is_multiple_of(2) {
+        start
+    } else {
+        let next_power = start.ilog10() + 1;
+        10u32.pow(next_power)
+    }
+}
 
 // We need a digits iterator. 10532 -> 1 0 5 3 2
 // We can combine .ilog10() and 10.pow() and division and modulus to do this.
@@ -107,6 +149,39 @@ fn repeat_digits(sequence: u32) -> u32 {
     let power = sequence.ilog10() + 1;
     let shifted = sequence * 10_u32.pow(power);
     shifted + sequence
+}
+
+#[test]
+fn first_even_from_test() {
+    assert_eq!(first_even_digited_number_from(0), 10);
+    assert_eq!(first_even_digited_number_from(1), 10);
+    assert_eq!(first_even_digited_number_from(10), 10);
+    assert_eq!(first_even_digited_number_from(11), 11);
+    assert_eq!(first_even_digited_number_from(81), 81);
+    assert_eq!(first_even_digited_number_from(230), 1000);
+    assert_eq!(first_even_digited_number_from(1000), 1000);
+    assert_eq!(first_even_digited_number_from(2153), 2153);
+    assert_eq!(first_even_digited_number_from(55555), 100000);
+}
+
+#[test]
+fn first_repeatable_from_test() {
+    // 0 -> 10 -> 1
+    assert_eq!(first_repeatable_digit_sequence_from(0), 1);
+    // 1 -> 10 -> 1
+    assert_eq!(first_repeatable_digit_sequence_from(1), 1);
+    // 9 -> 10 -> 1
+    assert_eq!(first_repeatable_digit_sequence_from(9), 1);
+    assert_eq!(first_repeatable_digit_sequence_from(10), 1);
+    assert_eq!(first_repeatable_digit_sequence_from(11), 1);
+    assert_eq!(first_repeatable_digit_sequence_from(12), 1);
+    assert_eq!(first_repeatable_digit_sequence_from(20), 2);
+    assert_eq!(first_repeatable_digit_sequence_from(24), 2);
+    // xxx -> 1000 -> 10
+    assert_eq!(first_repeatable_digit_sequence_from(666), 10);
+    assert_eq!(first_repeatable_digit_sequence_from(2456), 24);
+    // xxxxx -> 100000 -> 100
+    assert_eq!(first_repeatable_digit_sequence_from(57382), 100);
 }
 
 #[test]
