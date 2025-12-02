@@ -35,11 +35,19 @@ fn parse_range(txt: &str) -> Result<RangeInclusive<u32>, anyhow::Error> {
 /// degenerate case, we treat 0 as having zero digits, even though that's strange.
 struct Digits {
     current: u32,
+    dead: bool,
+}
+
+fn digits(n: u32) -> Digits {
+    Digits::new(n)
 }
 
 impl Digits {
     fn new(current: u32) -> Self {
-        Self { current }
+        Self {
+            current,
+            dead: false,
+        }
     }
 }
 
@@ -47,19 +55,32 @@ impl Iterator for Digits {
     type Item = u32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.current == 0 {
+        if self.dead {
             return None;
+        }
+        // degenerate case can't ilog10, also we're done here
+        if self.current == 0 {
+            self.dead = true;
+            return Some(0);
         }
         let power = self.current.ilog10();
         let divisor = 10_u32.pow(power);
         let val = self.current / divisor;
         self.current %= divisor; // bottoms out at 0 when run on single digit 👍🏼
+        // we're done if: we just handled the ones digit (i.e. for 10^0).
+        if power == 0 {
+            self.dead = true;
+        }
         Some(val)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        if self.current == 0 {
+        if self.dead {
             return (0, Some(0));
+        }
+        // degenerate case can't ilog10 but still valid...
+        if self.current == 0 {
+            return (1, Some(1));
         }
         // 10 ^ 0 = 1, 10 ^ 1 = 10...
         let num_digits = self.current.ilog10() + 1;
@@ -96,7 +117,8 @@ fn repeat_digits_test() {
 fn digits_iterator_test() {
     assert_eq!(Digits::new(4852798).count(), 7);
     assert_eq!(Digits::new(1).count(), 1);
-    assert_eq!(Digits::new(0).count(), 0);
+    assert_eq!(Digits::new(0).count(), 1);
+    assert_eq!(Digits::new(10).count(), 2);
     let mut d = Digits::new(4852798);
     assert_eq!(d.next(), Some(4));
     assert_eq!(d.next(), Some(8));
