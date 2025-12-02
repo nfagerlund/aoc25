@@ -20,10 +20,10 @@ fn part1_test() {
 }
 
 const _EXAMPLE: &str = "11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124";
-const _EXAMPLE_PER_ITEM_PART1_COUNTS: [u32; 11] = [2, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0];
+const _EXAMPLE_PER_ITEM_PART1_COUNTS: [u64; 11] = [2, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0];
 
 /// Returns the sum of the repeated sequence numbers within the given range.
-fn process_range_part1(r: RangeInclusive<u32>) -> u32 {
+fn process_range_part1(r: RangeInclusive<u64>) -> u64 {
     let start = *r.start();
     let mut repeat_seq = first_repeatable_digit_sequence_from(start);
     let mut sum = 0;
@@ -39,9 +39,9 @@ fn process_range_part1(r: RangeInclusive<u32>) -> u32 {
     sum
 }
 
-fn parse_range(txt: &str) -> Result<RangeInclusive<u32>, anyhow::Error> {
+fn parse_range(txt: &str) -> Result<RangeInclusive<u64>, anyhow::Error> {
     let (first, second) = txt.split_once('-').ok_or(anyhow!("not hyphenated pair"))?;
-    let (start, end) = (first.parse::<u32>()?, second.parse::<u32>()?);
+    let (start, end) = (first.parse::<u64>()?, second.parse::<u64>()?);
 
     Ok(start..=end)
 }
@@ -61,13 +61,13 @@ fn parse_range(txt: &str) -> Result<RangeInclusive<u32>, anyhow::Error> {
 // from the first half of a number.
 // Say we have eight digits, 54298345. We want 5429. We get the half-count (4).
 // We take first digit (5) and multiply it by 10^3, then add 4 * 10^2...
-fn first_repeatable_digit_sequence_from(start: u32) -> u32 {
+fn first_repeatable_digit_sequence_from(start: u64) -> u64 {
     let even = first_even_digited_number_from(start);
     let half_count = digits(even).count() / 2;
     let mut power = (half_count - 1) as u32;
-    let mut total = 0_u32;
+    let mut total = 0_u64;
     for digit in digits(even) {
-        total += digit * 10_u32.pow(power);
+        total += digit * 10_u64.pow(power);
         if power == 0 {
             // that was the ones.
             break;
@@ -83,7 +83,7 @@ fn first_repeatable_digit_sequence_from(start: u32) -> u32 {
 // * else, 10.pow(n.ilog10() + 1)
 
 /// Like the name says. But 0 returns 0, so take note.
-fn first_even_digited_number_from(start: u32) -> u32 {
+fn first_even_digited_number_from(start: u64) -> u64 {
     let dig_count = digits(start).count();
     // degenerate case: count == 1 but can't ilog10
     if start == 0 {
@@ -92,7 +92,7 @@ fn first_even_digited_number_from(start: u32) -> u32 {
         start
     } else {
         let next_power = start.ilog10() + 1;
-        10u32.pow(next_power)
+        10u64.pow(next_power)
     }
 }
 
@@ -100,20 +100,20 @@ fn first_even_digited_number_from(start: u32) -> u32 {
 // We can combine .ilog10() and 10.pow() and division and modulus to do this.
 // We can do size_hint and exact size iterator to get count of digits.
 
-/// An iterator that returns the digits of a u32 (base10) as u32s. As the
+/// An iterator that returns the digits of a u64 (base10) as u64s. As the
 /// degenerate case, we treat 0 as having zero digits, even though that's strange.
 struct Digits {
-    current: u32,
+    current: u64,
     place_power: u32,
     dead: bool,
 }
 
-fn digits(n: u32) -> Digits {
+fn digits(n: u64) -> Digits {
     Digits::new(n)
 }
 
 impl Digits {
-    fn new(current: u32) -> Self {
+    fn new(current: u64) -> Self {
         let place_power = if current == 0 {
             0 // ones digit
         } else {
@@ -128,14 +128,14 @@ impl Digits {
 }
 
 impl Iterator for Digits {
-    type Item = u32;
+    type Item = u64;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.dead {
             return None;
         }
         let power = self.place_power;
-        let divisor = 10_u32.pow(power);
+        let divisor = 10_u64.pow(power);
         let val = self.current / divisor;
         self.current %= divisor; // bottoms out at 0 when run on single digit 👍🏼
         // we're done if: we just handled the ones digit (i.e. for 10^0).
@@ -166,15 +166,15 @@ impl ExactSizeIterator for Digits {
     // Use all default impls, bc size_hint is 100% reliable
 }
 
-// We need a way to repeat a sequence of digits and output a u32.
+// We need a way to repeat a sequence of digits and output a u64.
 // I think we can use .ilog10 and 10.pow() and multiplication and addition to do this.
 
-/// Given a u32 that makes a sequence of digits, return a u32 that repeats that
+/// Given a u64 that makes a sequence of digits, return a u64 that repeats that
 /// sequence twice. so 123 -> 123123. 0 will panic. This does not check for
 /// overflow, which might bite me on part 2.
-fn repeat_digits(sequence: u32) -> u32 {
+fn repeat_digits(sequence: u64) -> u64 {
     let power = sequence.ilog10() + 1;
-    let shifted = sequence * 10_u32.pow(power);
+    let shifted = sequence * 10_u64.pow(power);
     shifted + sequence
 }
 
