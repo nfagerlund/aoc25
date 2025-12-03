@@ -1,5 +1,6 @@
 mod day1;
 mod day2;
+mod day3;
 
 fn main() {
     let mut args = std::env::args();
@@ -23,6 +24,14 @@ fn main() {
         "2-2" => {
             let input = std::fs::read_to_string("inputs/day2.txt").expect("can't find");
             day2::part2(&input).expect("should ok")
+        }
+        "3-1" => {
+            let input = std::fs::read_to_string("inputs/day3.txt").expect("can't find");
+            day3::part1(&input).expect("should ok")
+        }
+        "3-2" => {
+            let input = std::fs::read_to_string("inputs/day3.txt").expect("can't find");
+            day3::part2(&input).expect("should ok")
         }
         _ => "Can't find anything to run".to_string(),
     };
