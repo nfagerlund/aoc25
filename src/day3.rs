@@ -48,11 +48,20 @@ fn load_bank(dest: &mut Vec<u32>, line: &str) {
 /// Returns the biggest two-digit number that can be formed from a bank of
 /// digits (respecting order, but with any amount of space between them).
 fn process_bank_part1(bank: &[u32]) -> u32 {
-    // Locate the biggest number prior to the final element of the bank.
+    // Locate the biggest number prior to the final element of the bank. Note
+    // that equal numbers aren't interchangeable; we want the leftmost biggest
+    // one, bc it retains the most agency for the second digit!
     let (index, &first_digit) = bank[0..(bank.len() - 1)]
         .iter()
         .enumerate()
-        .max_by(|a, b| a.1.cmp(b.1))
+        .max_by(|a, b| {
+            if a.1 == b.1 {
+                // prefer leftmost, i.e. smallest index
+                b.0.cmp(&a.0)
+            } else {
+                a.1.cmp(b.1)
+            }
+        })
         .expect("bank must have at least two digits");
     let &second_digit = bank[(index + 1)..]
         .iter()
