@@ -37,6 +37,33 @@ const _EXAMPLE_PER_ITEM_PART2_COUNTS: [u64; 11] = [2, 2, 2, 1, 1, 0, 1, 1, 1, 1,
 
 // new rules for part two: identify numbers made only of sequences repeated
 // _any_ number of times, not just twice. So like 824824824 qualifies.
+//
+// Also note that there can be repeats at different power intervals. So 111111
+// can be [1] $ 6, [11] $ 3, [111] $ 2. And we only wanna count it once.
+
+/// A description of a number composed of a repeating digit pattern.
+/// The eventual number is produced by:
+/// stem * sum<i = 0..k-1>( [10^(interval * i)] )
+struct Repeaty {
+    /// The repeated portion, so the 24 in 242424.
+    stem: u64,
+    /// The gap between repetitions in powers of ten, so 2 in 242424. It's
+    /// easier to think of this in terms of "stem digit count" sometimes, but
+    /// once we're summing that's not quite right anymore.
+    pow_interval: u32,
+    /// The number of repetitions, so 3 in 242424.
+    pow_iterations: u32,
+}
+
+impl Repeaty {
+    fn to_num(&self) -> u64 {
+        let mut multiplier = 0_u64;
+        for i in 0..self.pow_iterations {
+            multiplier += 10_u64.pow(i * self.pow_interval);
+        }
+        self.stem * multiplier
+    }
+}
 
 /// Returns the sum of the repeated sequence numbers within the given range.
 fn process_range_part1(r: RangeInclusive<u64>) -> u64 {
@@ -244,6 +271,22 @@ fn div_ceil_is_neat() {
     assert_eq!(5_u32.div_ceil(2), 3);
     assert_eq!(6_u32.div_ceil(2), 3);
     assert_eq!(0_u32.div_ceil(2), 0);
+}
+
+#[test]
+fn repeaty_to_num_test() {
+    let r = Repeaty {
+        stem: 64,
+        pow_interval: 2,
+        pow_iterations: 4,
+    };
+    assert_eq!(r.to_num(), 64646464);
+    let r2 = Repeaty {
+        stem: 2,
+        pow_interval: 1,
+        pow_iterations: 3,
+    };
+    assert_eq!(r2.to_num(), 222);
 }
 
 #[test]
