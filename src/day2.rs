@@ -100,8 +100,12 @@ impl Repeaty {
                 max_stem_for_interval(self.pow_interval)
             };
 
+            let naive_stem = simple_sum(start_stem, end_stem);
+            // Now, we need to deduplicate. I think we want to run process_range_part2 on it??
+            let sum_of_duplicates = process_range_part2(start_stem..=end_stem);
+
             sum += Repeaty {
-                stem: simple_sum(start_stem, end_stem),
+                stem: naive_stem - sum_of_duplicates,
                 pow_interval: self.pow_interval,
                 pow_iterations: iterations,
             }
@@ -285,7 +289,10 @@ fn process_range_part2(r: RangeInclusive<u64>) -> u64 {
     for interval in 1..=max_interval_to_try {
         let first_repeaty = first_repeaty_of_interval_after(interval, *r.start());
         let last_repeaty = last_repeaty_of_interval_before(interval, *r.end());
-        sum += first_repeaty.sum_within_same_interval(&last_repeaty);
+        let intermediate_sum = first_repeaty.sum_within_same_interval(&last_repeaty);
+        // println!("processing range {:?}:", &r);
+        // println!("  sum: {}", intermediate_sum);
+        sum += intermediate_sum
     }
 
     sum
