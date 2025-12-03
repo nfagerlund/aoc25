@@ -117,6 +117,33 @@ fn first_even_digited_number_from(start: u64) -> u64 {
     }
 }
 
+fn is_repeaty(num: u64) -> bool {
+    let max_interval = num.div_ceil(2) as u32;
+    if max_interval == 0 {
+        // can't repeat to produce a single digit
+        return false;
+    }
+    // let mut interval = max_interval;
+    'interval: for i in 1..=max_interval {
+        let mut d = Digits::new_with_interval(num, i);
+        let Some(first_unit) = d.next() else {
+            continue;
+        };
+        // a single bite ain't enough
+        if d.len() < 1 {
+            continue;
+        }
+        for next in d {
+            if first_unit != next {
+                continue 'interval;
+            }
+        }
+        // Oh, looks like they were all the same. That's a repeaty.
+        return true;
+    }
+    false
+}
+
 // We need a digits iterator. 10532 -> 1 0 5 3 2
 // We can combine .ilog10() and 10.pow() and division and modulus to do this.
 // We can do size_hint and exact size iterator to get count of digits.
@@ -213,6 +240,13 @@ fn repeat_digits(sequence: u64) -> u64 {
 }
 
 #[test]
+fn div_ceil_is_neat() {
+    assert_eq!(5_u32.div_ceil(2), 3);
+    assert_eq!(6_u32.div_ceil(2), 3);
+    assert_eq!(0_u32.div_ceil(2), 0);
+}
+
+#[test]
 fn first_even_from_test() {
     assert_eq!(first_even_digited_number_from(0), 10);
     assert_eq!(first_even_digited_number_from(1), 10);
@@ -252,6 +286,20 @@ fn repeat_digits_test() {
     assert_eq!(repeat_digits(22), 2222);
     // 0 just panics. ok, so don't do that then.
     // assert_eq!(repeat_digits(0), 0);
+}
+
+#[test]
+fn is_repeaty_test() {
+    assert!(is_repeaty(11));
+    assert!(is_repeaty(111));
+    assert!(is_repeaty(2424));
+    assert!(is_repeaty(242424));
+    assert!(is_repeaty(456456456));
+
+    assert!(!is_repeaty(1));
+    assert!(!is_repeaty(0));
+    assert!(!is_repeaty(24));
+    assert!(!is_repeaty(101011));
 }
 
 #[test]
