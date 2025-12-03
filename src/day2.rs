@@ -63,6 +63,53 @@ impl Repeaty {
         }
         self.stem * multiplier
     }
+
+    /// Whether this repeaty is at least as big as the provided number.
+    fn gte(&self, num: u64) -> bool {
+        self.to_num() >= num
+    }
+
+    fn lte(&self, num: u64) -> bool {
+        self.to_num() <= num
+    }
+}
+
+/// For the given repeaty interval (i.e. one digit, two digits, three digits),
+/// find the first repeaty number larger than the given number.
+fn first_repeaty_of_interval_after(interval: u32, after: u64) -> Repeaty {
+    let num_digits = digits(after).len() as u32;
+    let evenly_fits_multiple_iterations =
+        num_digits.is_multiple_of(interval) && (num_digits / interval) > 1;
+    if evenly_fits_multiple_iterations {
+        let iterations = num_digits / interval;
+        // Try the repeaty whose stem is our own first n digits; if it's too
+        // small, bump stem by 1. This should always be safe, because the max
+        // number for N digits is 9999...n, which will pass on the first try.
+        let stem = Digits::new_with_interval(after, interval)
+            .next()
+            .expect("idk how this could even happen")
+            .max(1);
+        let mut candidate = Repeaty {
+            stem,
+            pow_interval: interval,
+            pow_iterations: iterations,
+        };
+        if !candidate.gte(after) {
+            candidate.stem += 1;
+        }
+        candidate
+    } else {
+        // we want the first number at the next biggest number of digits that'll
+        // support a repeaty of this interval. So, 1xxxxx for the stem.
+        // at least two iterations, otherwise it's not repeaty.
+        let iterations = num_digits.div_ceil(interval).max(2);
+        let stem = 10u64.pow(interval - 1);
+        Repeaty {
+            stem,
+            pow_interval: interval,
+            pow_iterations: iterations,
+        }
+    }
 }
 
 /// Returns the sum of the repeated sequence numbers within the given range.
@@ -264,6 +311,25 @@ fn repeat_digits(sequence: u64) -> u64 {
     let power = sequence.ilog10() + 1;
     let shifted = sequence * 10_u64.pow(power);
     shifted + sequence
+}
+
+#[test]
+fn first_after_test() {
+    assert_eq!(first_repeaty_of_interval_after(1, 0).to_num(), 11);
+    assert_eq!(first_repeaty_of_interval_after(1, 1).to_num(), 11);
+    assert_eq!(first_repeaty_of_interval_after(1, 10).to_num(), 11);
+    assert_eq!(first_repeaty_of_interval_after(1, 11).to_num(), 11);
+    assert_eq!(first_repeaty_of_interval_after(1, 12).to_num(), 22);
+    assert_eq!(first_repeaty_of_interval_after(2, 10).to_num(), 1010);
+    assert_eq!(first_repeaty_of_interval_after(2, 22).to_num(), 1010);
+    assert_eq!(first_repeaty_of_interval_after(2, 555).to_num(), 1010);
+    assert_eq!(first_repeaty_of_interval_after(2, 1000).to_num(), 1010);
+    assert_eq!(first_repeaty_of_interval_after(2, 1009).to_num(), 1010);
+    assert_eq!(first_repeaty_of_interval_after(2, 1011).to_num(), 1111);
+    assert_eq!(first_repeaty_of_interval_after(2, 2221).to_num(), 2222);
+    assert_eq!(first_repeaty_of_interval_after(2, 2222).to_num(), 2222);
+    assert_eq!(first_repeaty_of_interval_after(2, 2240).to_num(), 2323);
+    assert_eq!(first_repeaty_of_interval_after(3, 2240).to_num(), 100100);
 }
 
 #[test]
