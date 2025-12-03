@@ -112,6 +112,69 @@ fn first_repeaty_of_interval_after(interval: u32, after: u64) -> Repeaty {
     }
 }
 
+fn last_repeaty_of_interval_before(interval: u32, before: u64) -> Repeaty {
+    let num_digits = digits(before).len() as u32;
+    // (2, 1000) => ...None, actually!!! wow! so, should we represent that with
+    // stem 0? Or an Option return? I'm gonna say zero.
+    // (2, 1112) => 1111
+    // (2, 1211) => 1111
+    // (1, 10) => None
+    // (1, 15) => 11
+    // (1, 250) => 222
+    // (1, 215) => 111
+    // (2, 10039) => 9999
+    // (2, 100000) => 9999 ?!?! whoa
+
+    if num_digits / interval < 2 {
+        // Early out: we're not larger than ANY repeaty of this interval.
+        return Repeaty {
+            stem: 0,
+            pow_interval: interval,
+            pow_iterations: 2,
+        };
+    }
+
+    if num_digits.is_multiple_of(interval) {
+        // the tricky one
+        let candidate_stem = Digits::new_with_interval(before, interval)
+            .next()
+            .expect("we already checked for this >:(");
+        // We can't have a leading zero. So for interval 2, minimum is 10 (10^1)
+        let minimum_stem = 10_u64.pow(interval - 1);
+        let iterations = num_digits / interval;
+        let mut candidate = Repeaty {
+            stem: candidate_stem,
+            pow_interval: interval,
+            pow_iterations: iterations,
+        };
+        if !candidate.lte(before) {
+            candidate.stem -= 1;
+        }
+        if candidate.stem < minimum_stem {
+            // This gets messy. before we zero it, see if we can shrink the iterations.
+            if candidate.pow_iterations > 2 {
+                let max_stem = fill_digits(9, interval);
+                candidate.stem = max_stem;
+                candidate.pow_iterations -= 1;
+            } else {
+                // that's that, there's no valid answer.
+                candidate.stem = 0;
+            }
+        }
+
+        candidate
+    } else {
+        // The easy one: all nines at the highest multiple of the interval that'll fit.
+        let stem = fill_digits(9, interval);
+        let iterations = num_digits / interval; // div_floor
+        Repeaty {
+            stem,
+            pow_interval: interval,
+            pow_iterations: iterations,
+        }
+    }
+}
+
 /// Returns the sum of the repeated sequence numbers within the given range.
 fn process_range_part1(r: RangeInclusive<u64>) -> u64 {
     println!("testing {:?}", &r);
@@ -313,6 +376,15 @@ fn repeat_digits(sequence: u64) -> u64 {
     shifted + sequence
 }
 
+fn fill_digits(digit: u64, amount: u32) -> u64 {
+    Repeaty {
+        stem: digit,
+        pow_interval: 1,
+        pow_iterations: amount,
+    }
+    .to_num()
+}
+
 #[test]
 fn first_after_test() {
     assert_eq!(first_repeaty_of_interval_after(1, 0).to_num(), 11);
@@ -330,6 +402,32 @@ fn first_after_test() {
     assert_eq!(first_repeaty_of_interval_after(2, 2222).to_num(), 2222);
     assert_eq!(first_repeaty_of_interval_after(2, 2240).to_num(), 2323);
     assert_eq!(first_repeaty_of_interval_after(3, 2240).to_num(), 100100);
+}
+
+#[test]
+fn last_before_test() {
+    assert_eq!(last_repeaty_of_interval_before(2, 1000).to_num(), 0);
+    assert_eq!(last_repeaty_of_interval_before(2, 1112).to_num(), 1111);
+    assert_eq!(last_repeaty_of_interval_before(2, 1211).to_num(), 1111);
+    assert_eq!(last_repeaty_of_interval_before(1, 10).to_num(), 0);
+    assert_eq!(last_repeaty_of_interval_before(1, 15).to_num(), 11);
+    assert_eq!(last_repeaty_of_interval_before(1, 250).to_num(), 222);
+    assert_eq!(last_repeaty_of_interval_before(1, 215).to_num(), 111);
+    assert_eq!(last_repeaty_of_interval_before(2, 10039).to_num(), 9999);
+    assert_eq!(last_repeaty_of_interval_before(2, 100000).to_num(), 9999); // ?!?! whoa
+    assert_eq!(last_repeaty_of_interval_before(3, 10039).to_num(), 0);
+    assert_eq!(
+        last_repeaty_of_interval_before(3, 100000000).to_num(),
+        999999
+    );
+    assert_eq!(
+        last_repeaty_of_interval_before(3, 458719382).to_num(),
+        458458458
+    );
+    assert_eq!(
+        last_repeaty_of_interval_before(3, 458457999).to_num(),
+        457457457
+    );
 }
 
 #[test]
