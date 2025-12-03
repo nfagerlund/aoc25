@@ -121,11 +121,18 @@ fn first_even_digited_number_from(start: u64) -> u64 {
 // We can combine .ilog10() and 10.pow() and division and modulus to do this.
 // We can do size_hint and exact size iterator to get count of digits.
 
-/// An iterator that returns the digits of a u64 (base10) as u64s. As the
-/// degenerate case, we treat 0 as having zero digits, even though that's strange.
+/// An iterator that takes a number (and an optional number of digits to eat at
+/// a time), then returns the _numbers_ that would be formed by removing the
+/// specified quantity of digits from the left side of the number. If the number
+/// isn't an exact multiple of the requested unit of digits, the final result
+/// will be the number formed by whatever digits remain. See tests for more
+/// deets, but in short, digits(8007568, 2) => 80, 7, 56, 8.
+///
+/// As shown in that little example above, do watch your ass around zero-padding.
 struct Digits {
     current: u64,
     place_power: u32,
+    power_interval: u32,
     dead: bool,
 }
 
@@ -134,15 +141,20 @@ fn digits(n: u64) -> Digits {
 }
 
 impl Digits {
-    fn new(current: u64) -> Self {
-        let place_power = if current == 0 {
+    fn new(number: u64) -> Self {
+        Self::new_with_interval(number, 1)
+    }
+
+    fn new_with_interval(number: u64, interval: u32) -> Self {
+        let place_power = if number == 0 {
             0 // ones digit
         } else {
-            current.ilog10()
+            number.ilog10().saturating_sub(interval - 1)
         };
         Self {
-            current,
+            current: number,
             place_power,
+            power_interval: interval,
             dead: false,
         }
     }
@@ -164,7 +176,7 @@ impl Iterator for Digits {
             self.dead = true;
         } else {
             // tee up the next digit
-            self.place_power -= 1;
+            self.place_power = self.place_power.saturating_sub(self.power_interval);
         }
         Some(val)
     }
@@ -179,7 +191,8 @@ impl Iterator for Digits {
         }
         // 10 ^ 0 = 1, 10 ^ 1 = 10...
         let num_digits = self.current.ilog10() + 1;
-        (num_digits as usize, Some(num_digits as usize))
+        let remaining = num_digits.div_ceil(self.power_interval);
+        (remaining as usize, Some(remaining as usize))
     }
 }
 
@@ -249,6 +262,12 @@ fn digits_iterator_test() {
     assert_eq!(Digits::new(10).count(), 2);
     assert_eq!(Digits::new(666).count(), 3);
     assert_eq!(Digits::new(1000).count(), 4);
+    assert_eq!(Digits::new(4852798).len(), 7);
+    assert_eq!(Digits::new(1).len(), 1);
+    assert_eq!(Digits::new(0).len(), 1);
+    assert_eq!(Digits::new(10).len(), 2);
+    assert_eq!(Digits::new(666).len(), 3);
+    assert_eq!(Digits::new(1000).len(), 4);
 
     let mut d = Digits::new(4852798);
     assert_eq!(d.next(), Some(4));
@@ -260,6 +279,46 @@ fn digits_iterator_test() {
     assert_eq!(d.next(), Some(8));
     assert_eq!(d.next(), None);
     assert_eq!(d.next(), None);
+}
+
+#[test]
+fn digits_with_interval_test() {
+    // exact multiple number of digits
+    assert_eq!(Digits::new_with_interval(245896, 2).len(), 3); // uses size_hint
+    assert_eq!(Digits::new_with_interval(245896, 2).count(), 3); // ignores size_hint, burns thru
+    let mut d = Digits::new_with_interval(245896, 2);
+    assert_eq!(d.next(), Some(24));
+    assert_eq!(d.next(), Some(58));
+    assert_eq!(d.next(), Some(96));
+    assert!(d.next().is_none());
+
+    assert_eq!(Digits::new_with_interval(245896, 3).len(), 2);
+    assert_eq!(Digits::new_with_interval(245896, 3).count(), 2);
+    let mut d = Digits::new_with_interval(245896, 3);
+    assert_eq!(d.next(), Some(245));
+    assert_eq!(d.next(), Some(896));
+    assert!(d.next().is_none());
+
+    // uneven multiple digits
+    assert_eq!(Digits::new_with_interval(3588769, 2).len(), 4);
+    assert_eq!(Digits::new_with_interval(3588769, 2).count(), 4);
+    let mut d = Digits::new_with_interval(3588769, 2);
+    assert_eq!(d.next(), Some(35));
+    assert_eq!(d.next(), Some(88));
+    assert_eq!(d.next(), Some(76));
+    // We return the number corresponding to the remaining digits, even if it's
+    // not the full 2 digits
+    assert_eq!(d.next(), Some(9));
+    assert!(d.next().is_none());
+
+    // With zeroes and shit
+    assert_eq!(Digits::new_with_interval(30050, 2).len(), 3);
+    assert_eq!(Digits::new_with_interval(30050, 2).count(), 3);
+    let mut d = Digits::new_with_interval(30050, 2);
+    assert_eq!(d.next(), Some(30));
+    assert_eq!(d.next(), Some(5));
+    assert_eq!(d.next(), Some(0));
+    assert!(d.next().is_none());
 }
 
 #[test]
