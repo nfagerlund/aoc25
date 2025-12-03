@@ -101,7 +101,11 @@ impl Repeaty {
             };
 
             let naive_stem = simple_sum(start_stem, end_stem);
-            // Now, we need to deduplicate. I think we want to run process_range_part2 on it??
+            // Now, we need to deduplicate. I think we want to run
+            // process_range_part2 on it?? yep, because if the stem is, itself,
+            // a repeaty, then by definition it was already counted at a lower
+            // interval size using a stem that wasn't repeaty. This produces the
+            // exact amount we double-counted by.
             let sum_of_duplicates = process_range_part2(start_stem..=end_stem);
 
             sum += Repeaty {
@@ -115,7 +119,7 @@ impl Repeaty {
         sum
     }
 
-    fn sum_within_same_scales(&self, other: &Self) -> u64 {
+    fn _sum_within_same_scales(&self, other: &Self) -> u64 {
         if self.pow_interval != other.pow_interval || self.pow_iterations != other.pow_iterations {
             panic!("This fn demands same repetition scales.");
         }
@@ -378,7 +382,7 @@ fn first_even_digited_number_from(start: u64) -> u64 {
     }
 }
 
-fn is_repeaty(num: u64) -> bool {
+fn _is_repeaty(num: u64) -> bool {
     let max_interval = num.div_ceil(2) as u32;
     if max_interval == 0 {
         // can't repeat to produce a single digit
@@ -621,16 +625,16 @@ fn repeat_digits_test() {
 
 #[test]
 fn is_repeaty_test() {
-    assert!(is_repeaty(11));
-    assert!(is_repeaty(111));
-    assert!(is_repeaty(2424));
-    assert!(is_repeaty(242424));
-    assert!(is_repeaty(456456456));
+    assert!(_is_repeaty(11));
+    assert!(_is_repeaty(111));
+    assert!(_is_repeaty(2424));
+    assert!(_is_repeaty(242424));
+    assert!(_is_repeaty(456456456));
 
-    assert!(!is_repeaty(1));
-    assert!(!is_repeaty(0));
-    assert!(!is_repeaty(24));
-    assert!(!is_repeaty(101011));
+    assert!(!_is_repeaty(1));
+    assert!(!_is_repeaty(0));
+    assert!(!_is_repeaty(24));
+    assert!(!_is_repeaty(101011));
 }
 
 #[test]
