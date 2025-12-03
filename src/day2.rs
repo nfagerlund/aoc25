@@ -12,7 +12,12 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
 }
 
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
-    Err(anyhow!("ugh??"))
+    let sum = input
+        .split(',')
+        .map(|txt| parse_range(txt).expect("hey what the..."))
+        .map(process_range_part2)
+        .reduce(|acc, e| acc + e);
+    sum.map(|i| format!("{}", i)).ok_or(anyhow!("lol"))
 }
 
 #[test]
@@ -72,6 +77,103 @@ impl Repeaty {
     fn lte(&self, num: u64) -> bool {
         self.to_num() <= num
     }
+
+    /// Self is small, other is large. handles a range of iterations as well as range
+    /// of stems.
+    fn sum_within_same_interval(&self, other: &Self) -> u64 {
+        if self.pow_interval != other.pow_interval {
+            panic!("this fn demands same intervals.");
+        }
+        if self > other {
+            return 0;
+        }
+        let mut sum = 0;
+        for iterations in self.pow_iterations..=other.pow_iterations {
+            let start_stem = if iterations == self.pow_iterations {
+                self.stem
+            } else {
+                min_stem_for_interval(self.pow_interval)
+            };
+            let end_stem = if iterations == other.pow_iterations {
+                other.stem
+            } else {
+                max_stem_for_interval(self.pow_interval)
+            };
+
+            sum += Repeaty {
+                stem: simple_sum(start_stem, end_stem),
+                pow_interval: self.pow_interval,
+                pow_iterations: iterations,
+            }
+            .to_num();
+        }
+
+        sum
+    }
+
+    fn sum_within_same_scales(&self, other: &Self) -> u64 {
+        if self.pow_interval != other.pow_interval || self.pow_iterations != other.pow_iterations {
+            panic!("This fn demands same repetition scales.");
+        }
+        if self.stem > other.stem {
+            return 0;
+        }
+        // Now is the time to break the stem/digit count rules.
+        Repeaty {
+            stem: simple_sum(self.stem, other.stem),
+            pow_interval: self.pow_interval,
+            pow_iterations: self.pow_iterations,
+        }
+        .to_num()
+    }
+}
+
+impl PartialEq for Repeaty {
+    fn eq(&self, other: &Self) -> bool {
+        self.stem == other.stem
+            && self.pow_interval == other.pow_interval
+            && self.pow_iterations == other.pow_iterations
+    }
+}
+
+impl PartialOrd for Repeaty {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        // You can only compare within a given interval.
+        if self.pow_interval != other.pow_interval {
+            return None;
+        }
+        // More iterations? Biger number.
+        if self.pow_iterations != other.pow_iterations {
+            return self.pow_iterations.partial_cmp(&other.pow_iterations);
+        }
+        // finally, compare the stems
+        self.stem.partial_cmp(&other.stem)
+    }
+}
+
+fn min_stem_for_interval(interval: u32) -> u64 {
+    10u64.pow(interval - 1)
+}
+
+fn max_stem_for_interval(interval: u32) -> u64 {
+    fill_digits(9, interval)
+}
+
+fn simple_sum(start: u64, end: u64) -> u64 {
+    if start > end {
+        return 0;
+    }
+    simple_sum_from_1(end) - simple_sum_from_1(start - 1)
+}
+
+fn simple_sum_from_1(end: u64) -> u64 {
+    (end * (end + 1)) / 2
+}
+
+#[test]
+fn simple_sum_test() {
+    assert_eq!(simple_sum_from_1(5), 15);
+    assert_eq!(simple_sum(12, 15), 54);
 }
 
 /// For the given repeaty interval (i.e. one digit, two digits, three digits),
@@ -103,7 +205,7 @@ fn first_repeaty_of_interval_after(interval: u32, after: u64) -> Repeaty {
         // support a repeaty of this interval. So, 1xxxxx for the stem.
         // at least two iterations, otherwise it's not repeaty.
         let iterations = num_digits.div_ceil(interval).max(2);
-        let stem = 10u64.pow(interval - 1);
+        let stem = min_stem_for_interval(interval);
         Repeaty {
             stem,
             pow_interval: interval,
@@ -153,7 +255,7 @@ fn last_repeaty_of_interval_before(interval: u32, before: u64) -> Repeaty {
         if candidate.stem < minimum_stem {
             // This gets messy. before we zero it, see if we can shrink the iterations.
             if candidate.pow_iterations > 2 {
-                let max_stem = fill_digits(9, interval);
+                let max_stem = max_stem_for_interval(interval);
                 candidate.stem = max_stem;
                 candidate.pow_iterations -= 1;
             } else {
@@ -165,7 +267,7 @@ fn last_repeaty_of_interval_before(interval: u32, before: u64) -> Repeaty {
         candidate
     } else {
         // The easy one: all nines at the highest multiple of the interval that'll fit.
-        let stem = fill_digits(9, interval);
+        let stem = max_stem_for_interval(interval);
         let iterations = num_digits / interval; // div_floor
         Repeaty {
             stem,
@@ -175,7 +277,22 @@ fn last_repeaty_of_interval_before(interval: u32, before: u64) -> Repeaty {
     }
 }
 
-/// Returns the sum of the repeated sequence numbers within the given range.
+/// Returns the sum of all the repeated sequence numbers (any number of
+/// repetitions) within the given range.
+fn process_range_part2(r: RangeInclusive<u64>) -> u64 {
+    let max_interval_to_try = (digits(*r.end()).len() / 2) as u32;
+    let mut sum = 0u64;
+    for interval in 1..=max_interval_to_try {
+        let first_repeaty = first_repeaty_of_interval_after(interval, *r.start());
+        let last_repeaty = last_repeaty_of_interval_before(interval, *r.end());
+        sum += first_repeaty.sum_within_same_interval(&last_repeaty);
+    }
+
+    sum
+}
+
+/// Returns the sum of the repeated sequence numbers (exactly two repetitions)
+/// within the given range.
 fn process_range_part1(r: RangeInclusive<u64>) -> u64 {
     println!("testing {:?}", &r);
     let start = *r.start();
