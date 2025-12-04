@@ -8,11 +8,21 @@ pub fn part2(input: &str) -> Result<String, anyhow::Error> {
     Err(anyhow!("not implemented"))
 }
 
-const _EXAMPLE: &str = "";
+const _EXAMPLE: &str = "..@@.@@@@.
+@@@.@.@.@@
+@@@@@.@.@@
+@.@@@@..@.
+@@.@@@@.@@
+.@@@@@@@.@
+.@.@.@.@@@
+@.@@@.@@@@
+.@@@@@@@@.
+@.@.@@@.@.
+";
 
 #[test]
 fn part1_test() {
-    assert_eq!(part1(_EXAMPLE).expect("should ok"), "LOL".to_string());
+    assert_eq!(part1(_EXAMPLE).expect("should ok"), "13".to_string());
 }
 
 #[test]
