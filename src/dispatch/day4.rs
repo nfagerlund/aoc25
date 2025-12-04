@@ -138,7 +138,7 @@ impl<T> Grid<T> {
     }
 
     /// Get the value at a grid cell
-    fn _get(&self, coords: Coords) -> Option<&T> {
+    fn get(&self, coords: Coords) -> Option<&T> {
         let index = self.index(coords)?;
         self.storage.get(index)
     }
@@ -149,8 +149,7 @@ impl<T> Grid<T> {
 
     fn get_neighbor(&self, coords: Coords, dir: Dir) -> Option<&T> {
         let neighbor = traverse(coords, dir)?;
-        let index = self.index(neighbor)?;
-        self.storage.get(index)
+        self.get(neighbor)
     }
 }
 
