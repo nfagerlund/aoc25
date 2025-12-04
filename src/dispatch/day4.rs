@@ -3,9 +3,7 @@ use anyhow::anyhow;
 /// Find all *occupied* cells where fewer than four of the eight surrounding
 /// cells are occupied.
 pub fn part1(input: &str) -> Result<String, anyhow::Error> {
-    let width = width_of_ascii_grid(input);
-    let stuff = load_ascii_grid_to_vec_of_bools(input);
-    let grid = Grid::try_new(width, stuff)?;
+    let grid = Grid::build(input)?;
     let all_roll_indices = grid.iter_occupied_indices();
     let all_roll_neighbor_counts = all_roll_indices.map(|i| {
         let coords = grid.coords(i);
@@ -18,7 +16,18 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
 /// Iteratively count how many rolls of paper can be removed, according to the
 /// accessibility rules in part 1. Each iteration exposes more rolls.
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
-    Err(anyhow!("not implemented"))
+    let mut grid = Grid::build(input)?;
+    let mut count = 0;
+
+    loop {
+        let iteration_count = grid.evict_and_count();
+        if iteration_count == 0 {
+            break;
+        }
+        count += iteration_count;
+    }
+
+    Ok(format!("{count}"))
 }
 
 const _EXAMPLE: &str = "..@@.@@@@.
@@ -40,7 +49,7 @@ fn part1_test() {
 
 #[test]
 fn part2_test() {
-    assert_eq!(part1(_EXAMPLE).expect("should ok"), "43".to_string());
+    assert_eq!(part2(_EXAMPLE).expect("should ok"), "43".to_string());
 }
 
 // Can I implement a grid without making the underlying array two-dimensional?
@@ -146,6 +155,12 @@ impl<T> Grid<T> {
 }
 
 impl Grid<bool> {
+    fn build(ascii: &str) -> anyhow::Result<Self> {
+        let width = width_of_ascii_grid(ascii);
+        let stuff = load_ascii_grid_to_vec_of_bools(ascii);
+        Grid::try_new(width, stuff)
+    }
+
     fn count_occupied_neighbors(&self, coords: Coords) -> usize {
         Dir::ALL
             .iter()
@@ -165,6 +180,26 @@ impl Grid<bool> {
                 if *value { Some(index) } else { None }
             },
         )
+    }
+
+    // I realized we can just evict as-we-go, because there's no requirement for
+    // instantaneous/simultaneous processing of a given iteration; we just need
+    // to eventually converge, so it's fine if we exploit some slots that opened
+    // up due to actions we just took. Good, even.
+    fn evict_and_count(&mut self) -> usize {
+        let mut count = 0;
+        for i in 0..self.storage.len() {
+            if let Some(occupied) = self.storage.get(i)
+                && *occupied
+            {
+                let coords = self.coords(i);
+                if self.count_occupied_neighbors(coords) < 4 {
+                    count += 1;
+                    self.storage[i] = false;
+                }
+            }
+        }
+        count
     }
 }
 
