@@ -6,10 +6,7 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
     let width = width_of_ascii_grid(input);
     let stuff = load_ascii_grid_to_vec_of_bools(input);
     let grid = Grid::try_new(width, stuff)?;
-    let all_roll_indices = (0_usize..grid.storage.len()).filter(|i| {
-        let b = grid.get_by_index(*i).expect("already bounds-checked");
-        *b
-    });
+    let all_roll_indices = grid.iter_occupied_indices();
     let all_roll_neighbor_counts = all_roll_indices.map(|i| {
         let coords = grid.coords(i);
         grid.count_occupied_neighbors(coords)
@@ -160,6 +157,14 @@ impl Grid<bool> {
                 }
             })
             .count()
+    }
+
+    fn iter_occupied_indices(&self) -> impl Iterator<Item = usize> {
+        self.storage.iter().enumerate().filter_map(
+            |(index, value)| {
+                if *value { Some(index) } else { None }
+            },
+        )
     }
 }
 
