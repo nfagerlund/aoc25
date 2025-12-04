@@ -31,7 +31,7 @@ fn part1_test() {
 fn part_2_test() {
     assert_eq!(
         part2(_EXAMPLE).expect("should ok"),
-        "aseothuaestnhu".to_string()
+        "3121910778619".to_string()
     );
 }
 
