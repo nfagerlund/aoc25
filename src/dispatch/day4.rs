@@ -138,12 +138,12 @@ impl<T> Grid<T> {
     }
 
     /// Get the value at a grid cell
-    fn get(&self, coords: Coords) -> Option<&T> {
+    fn _get(&self, coords: Coords) -> Option<&T> {
         let index = self.index(coords)?;
         self.storage.get(index)
     }
 
-    fn get_by_index(&self, index: usize) -> Option<&T> {
+    fn _get_by_index(&self, index: usize) -> Option<&T> {
         self.storage.get(index)
     }
 
