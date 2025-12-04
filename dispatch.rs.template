@@ -3,7 +3,6 @@
 //! be children of it.
 
 {day_mods}
-
 pub const DAYS: &[&str] = &[{days_list}];
 
 /// Maps puzzle identifiers to implementation functions. The main thing you
