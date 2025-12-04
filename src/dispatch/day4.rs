@@ -18,6 +18,8 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
     Ok(format!("{accessible_rolls_count}"))
 }
 
+/// Iteratively count how many rolls of paper can be removed, according to the
+/// accessibility rules in part 1. Each iteration exposes more rolls.
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
     Err(anyhow!("not implemented"))
 }
@@ -41,7 +43,7 @@ fn part1_test() {
 
 #[test]
 fn part2_test() {
-    assert_eq!(part1(_EXAMPLE).expect("should ok"), "LOL".to_string());
+    assert_eq!(part1(_EXAMPLE).expect("should ok"), "43".to_string());
 }
 
 // Can I implement a grid without making the underlying array two-dimensional?
