@@ -6,41 +6,28 @@ fn main() {
     let mut args = std::env::args();
     args.next();
     let puzzle = args.next().expect("Requires a puzzle argument, e.g. `1-1`");
-    let output = match puzzle.as_str() {
-        "1-1" => {
-            let input =
-                std::fs::read_to_string("inputs/1.txt").expect("can't find inputs for day 1");
-            day1::part1(&input)
-        }
-        "1-2" => {
-            let input =
-                std::fs::read_to_string("inputs/1.txt").expect("can't find inputs for day 1");
-            day1::part2(&input)
-        }
-        "2-1" => {
-            let input = std::fs::read_to_string("inputs/day2.txt").expect("can't find");
-            day2::part1(&input).expect("should ok")
-        }
-        "2-2" => {
-            let input = std::fs::read_to_string("inputs/day2.txt").expect("can't find");
-            day2::part2(&input).expect("should ok")
-        }
-        "3-1" => {
-            let input = std::fs::read_to_string("inputs/day3.txt").expect("can't find");
-            day3::part1(&input).expect("should ok")
-        }
-        "3-2" => {
-            let input = std::fs::read_to_string("inputs/day3.txt").expect("can't find");
-            day3::part2(&input).expect("should ok")
-        }
-        _ => "Can't find anything to run".to_string(),
+    let f: fn(&str) -> Result<String, anyhow::Error> = match puzzle.as_str() {
+        "1-1" => day1::part1,
+        "1-2" => day1::part2,
+        "2-1" => day2::part1,
+        "2-2" => day2::part2,
+        "3-1" => day3::part1,
+        "3-2" => day3::part2,
+        _ => panic!("That's not a valid puzzle yet"),
     };
+    let day = puzzle
+        .split('-')
+        .next()
+        .expect("actually that can't ever fail.");
+    let input_file = format!("inputs/day{day}.txt");
+    let input = std::fs::read_to_string(input_file).expect("can't find inputs for that");
+    let output = f(&input).expect("implementation returned error");
 
     println!("got output:\n{}", &output);
 }
 
 #[test]
-fn args() {
+fn args_test() {
     for a in std::env::args() {
         println!("{}", a);
     }

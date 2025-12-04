@@ -3,7 +3,7 @@
 
 /// Apply the supplied rotations to a wrapping 100-tick dial (labeled 0-99), and
 /// count how many times the dial stops at 0.
-pub fn part1(input: &str) -> String {
+pub fn part1(input: &str) -> Result<String, anyhow::Error> {
     // dial starts at 50
     let mut dial: i32 = 50;
     let mut zero_counter: u32 = 0;
@@ -20,10 +20,10 @@ pub fn part1(input: &str) -> String {
         }
     }
 
-    format!("{}", zero_counter)
+    Ok(format!("{}", zero_counter))
 }
 
-pub fn part2(input: &str) -> String {
+pub fn part2(input: &str) -> Result<String, anyhow::Error> {
     let mut dial: i32 = 50;
     let mut zero_counter: u32 = 0;
 
@@ -36,7 +36,7 @@ pub fn part2(input: &str) -> String {
         zero_counter += z;
     }
 
-    format!("{}", zero_counter)
+    Ok(format!("{}", zero_counter))
 }
 
 #[derive(PartialEq, Debug)]
@@ -164,12 +164,12 @@ L82
 
 #[test]
 fn part1_test() {
-    assert_eq!(part1(TEST_INPUTS), "3".to_string());
+    assert_eq!(part1(TEST_INPUTS).unwrap(), "3".to_string());
 }
 
 #[test]
 fn part2_test() {
-    assert_eq!(part2(TEST_INPUTS), "6".to_string());
+    assert_eq!(part2(TEST_INPUTS).unwrap(), "6".to_string());
 }
 
 #[test]
