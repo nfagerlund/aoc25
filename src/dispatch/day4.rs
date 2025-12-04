@@ -3,7 +3,19 @@ use anyhow::anyhow;
 /// Find all *occupied* cells where fewer than four of the eight surrounding
 /// cells are occupied.
 pub fn part1(input: &str) -> Result<String, anyhow::Error> {
-    Err(anyhow!("not implemented"))
+    let width = width_of_ascii_grid(input);
+    let stuff = load_ascii_grid_to_vec_of_bools(input);
+    let grid = Grid::try_new(width, stuff)?;
+    let all_roll_indices = (0_usize..grid.storage.len()).filter(|i| {
+        let b = grid.get_by_index(*i).expect("already bounds-checked");
+        *b
+    });
+    let all_roll_neighbor_counts = all_roll_indices.map(|i| {
+        let coords = grid.coords(i);
+        grid.count_occupied_neighbors(coords)
+    });
+    let accessible_rolls_count = all_roll_neighbor_counts.filter(|c| *c < 4).count();
+    Ok(format!("{accessible_rolls_count}"))
 }
 
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
@@ -119,6 +131,10 @@ impl<T> Grid<T> {
     /// Get the value at a grid cell
     fn get(&self, coords: Coords) -> Option<&T> {
         let index = self.index(coords)?;
+        self.storage.get(index)
+    }
+
+    fn get_by_index(&self, index: usize) -> Option<&T> {
         self.storage.get(index)
     }
 
