@@ -82,8 +82,11 @@ fn process_bank_part2(bank: &[u64], digits: u32) -> u64 {
                 }
             })
             .expect("bank must have at least n digits");
-        // Remember where to start for the next digit
-        starting_index = index + 1;
+        // Remember where to start for the next digit. and remember! Since we
+        // re-sliced the bank before finding our digit, its indexing re-started
+        // from 0, so we have to offset it by the last starting index we used as
+        // well.
+        starting_index = starting_index + index + 1;
         // put it in place
         accumulator += 10u64.pow(i) * digit;
     }
