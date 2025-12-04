@@ -1,0 +1,16 @@
+//! This module has all the nasty stuff that I need to fill via template. It
+//! keeps it out of main. However, as a consequence, all the day modules need to
+//! be children of it.
+
+{day_mods}
+
+pub const DAYS: &[&str] = &[{days_list}];
+
+/// Maps puzzle identifiers to implementation functions. The main thing you
+/// gotta add when starting a new day.
+pub fn puzzle_fn(p: &str) -> fn(&str) -> Result<String, anyhow::Error> {{
+    match p {{
+{puzzle_dispatches}
+        _ => panic!("That's not a valid puzzle yet"),
+    }}
+}}
