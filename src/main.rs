@@ -42,7 +42,7 @@ fn new_day<'a>(day: &'a str) -> anyhow::Result<()> {
     days.push(day);
 
     // New impl module file (copy template)
-    std::fs::copy("./day_template.rs", format!("./src/day{day}.rs"))?;
+    std::fs::copy("./day.rs.template", format!("./src/dispatch/day{day}.rs"))?;
     // New input file (empty)
     let inputs = std::fs::OpenOptions::new()
         .write(true)
