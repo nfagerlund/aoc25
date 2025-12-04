@@ -1,8 +1,6 @@
-use anyhow::anyhow;
-
 pub fn part1(input: &str) -> Result<String, anyhow::Error> {
-    let mut working_bank = Vec::<u32>::with_capacity(100); // counted the line length.
-    let mut sum = 0_u32;
+    let mut working_bank = Vec::<u64>::with_capacity(100); // counted the line length.
+    let mut sum = 0_u64;
     for line in input.lines() {
         load_bank(&mut working_bank, line);
         let res = process_bank_part1(&working_bank);
@@ -13,8 +11,8 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
 }
 
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
-    let mut working_bank = Vec::<u32>::with_capacity(100); // counted the line length.
-    let mut sum = 0_u32;
+    let mut working_bank = Vec::<u64>::with_capacity(100); // counted the line length.
+    let mut sum = 0_u64;
     for line in input.lines() {
         load_bank(&mut working_bank, line);
         let res = process_bank_part2(&working_bank, 12);
@@ -45,22 +43,22 @@ fn part_2_test() {
 
 /// void: replaces the contents of the provided vec with numbers extracted from
 /// the line of text.
-fn load_bank(dest: &mut Vec<u32>, line: &str) {
+fn load_bank(dest: &mut Vec<u64>, line: &str) {
     let stuff = line
         .chars()
-        .map(|c| c.to_digit(10).expect("malformed input"));
+        .map(|c| c.to_digit(10).expect("malformed input") as u64);
     dest.clear();
     dest.extend(stuff);
 }
 
 /// Returns the biggest two-digit number that can be formed from a bank of
 /// digits (respecting order, but with any amount of space between them).
-fn process_bank_part1(bank: &[u32]) -> u32 {
+fn process_bank_part1(bank: &[u64]) -> u64 {
     process_bank_part2(bank, 2)
 }
 
-fn process_bank_part2(bank: &[u32], digits: u32) -> u32 {
-    let mut accumulator = 0_u32;
+fn process_bank_part2(bank: &[u64], digits: u32) -> u64 {
+    let mut accumulator = 0_u64;
     let mut starting_index = 0_usize;
 
     // fencepost check: for 2 digits, we want 10^0 and 10^1.
@@ -87,7 +85,7 @@ fn process_bank_part2(bank: &[u32], digits: u32) -> u32 {
         // Remember where to start for the next digit
         starting_index = index + 1;
         // put it in place
-        accumulator += 10u32.pow(i) * digit;
+        accumulator += 10u64.pow(i) * digit;
     }
 
     accumulator
