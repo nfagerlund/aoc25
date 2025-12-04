@@ -87,5 +87,6 @@ fn make_puzzle_dispatches(days: &[&str]) -> Result<String, std::fmt::Error> {
 }
 
 fn make_days_list(days: &[&str]) -> String {
-    days.join(", ")
+    let inner = days.join(r#"", ""#);
+    format!(r#""{inner}""#)
 }
