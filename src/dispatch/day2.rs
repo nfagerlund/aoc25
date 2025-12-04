@@ -15,7 +15,7 @@ pub fn part2(input: &str) -> Result<String, anyhow::Error> {
     let sum = input
         .split(',')
         .map(|txt| parse_range(txt).expect("hey what the..."))
-        .map(process_range_part2)
+        .map(sum_repeaties_in_range)
         .reduce(|acc, e| acc + e);
     sum.map(|i| format!("{}", i)).ok_or(anyhow!("lol"))
 }
@@ -106,7 +106,7 @@ impl Repeaty {
             // a repeaty, then by definition it was already counted at a lower
             // interval size using a stem that wasn't repeaty. This produces the
             // exact amount we double-counted by.
-            let sum_of_duplicates = process_range_part2(start_stem..=end_stem);
+            let sum_of_duplicates = sum_repeaties_in_range(start_stem..=end_stem);
 
             sum += Repeaty {
                 stem: naive_stem - sum_of_duplicates,
@@ -146,15 +146,15 @@ impl PartialEq for Repeaty {
 
 impl PartialOrd for Repeaty {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        // You can only compare within a given interval.
+        // If the intervals are different, gotta check the whole thing.
         if self.pow_interval != other.pow_interval {
-            return None;
+            return self.to_num().partial_cmp(&other.to_num());
         }
-        // More iterations? Biger number.
+        // shortcut: more iterations means bigger
         if self.pow_iterations != other.pow_iterations {
             return self.pow_iterations.partial_cmp(&other.pow_iterations);
         }
-        // finally, compare the stems
+        // shortcut: compare the stems
         self.stem.partial_cmp(&other.stem)
     }
 }
@@ -287,7 +287,7 @@ fn last_repeaty_of_interval_before(interval: u32, before: u64) -> Repeaty {
 
 /// Returns the sum of all the repeated sequence numbers (any number of
 /// repetitions) within the given range.
-fn process_range_part2(r: RangeInclusive<u64>) -> u64 {
+fn sum_repeaties_in_range(r: RangeInclusive<u64>) -> u64 {
     let max_interval_to_try = (digits(*r.end()).len() / 2) as u32;
     let mut sum = 0u64;
     for interval in 1..=max_interval_to_try {
@@ -349,7 +349,7 @@ fn parse_range(txt: &str) -> Result<RangeInclusive<u64>, anyhow::Error> {
 // We take first digit (5) and multiply it by 10^3, then add 4 * 10^2...
 fn first_repeatable_digit_sequence_from(start: u64) -> u64 {
     let even = first_even_digited_number_from(start);
-    let half_count = digits(even).count() / 2;
+    let half_count = digits(even).len() / 2;
     let mut power = (half_count - 1) as u32;
     let mut total = 0_u64;
     for digit in digits(even) {
@@ -368,9 +368,9 @@ fn first_repeatable_digit_sequence_from(start: u64) -> u64 {
 // * ...say we have 301... we want 1000. 301.ilog10() = 2, 10^2 = 100, so we want 10^3
 // * else, 10.pow(n.ilog10() + 1)
 
-/// Like the name says. But 0 returns 0, so take note.
+/// Like the name says.
 fn first_even_digited_number_from(start: u64) -> u64 {
-    let dig_count = digits(start).count();
+    let dig_count = digits(start).len();
     // degenerate case: count == 1 but can't ilog10
     if start == 0 {
         10
