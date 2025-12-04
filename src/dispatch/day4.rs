@@ -81,18 +81,19 @@ impl Dir {
 }
 
 /// positive Y is south. Ignoring grid size.
-fn traverse(coords: Coords, dir: Dir) -> Coords {
+fn traverse(coords: Coords, dir: Dir) -> Option<Coords> {
     let (x, y) = coords;
-    match dir {
+    let n = match dir {
         Dir::E => (x + 1, y),
-        Dir::NE => (x + 1, y - 1),
-        Dir::N => (x, y - 1),
-        Dir::NW => (x - 1, y - 1),
-        Dir::W => (x - 1, y),
-        Dir::SW => (x - 1, y + 1),
+        Dir::NE => (x + 1, y.checked_sub(1)?),
+        Dir::N => (x, y.checked_sub(1)?),
+        Dir::NW => (x.checked_sub(1)?, y.checked_sub(1)?),
+        Dir::W => (x.checked_sub(1)?, y),
+        Dir::SW => (x.checked_sub(1)?, y + 1),
         Dir::S => (x, y + 1),
         Dir::SE => (x + 1, y + 1),
-    }
+    };
+    Some(n)
 }
 
 impl<T> Grid<T> {
@@ -139,7 +140,7 @@ impl<T> Grid<T> {
     }
 
     fn get_neighbor(&self, coords: Coords, dir: Dir) -> Option<&T> {
-        let neighbor = traverse(coords, dir);
+        let neighbor = traverse(coords, dir)?;
         let index = self.index(neighbor)?;
         self.storage.get(index)
     }
