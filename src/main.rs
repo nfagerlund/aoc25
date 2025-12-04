@@ -70,7 +70,7 @@ fn make_day_mods(days: &[&str]) -> Result<String, std::fmt::Error> {
 
     let mut out = String::new();
     for &day in days {
-        writeln!(&mut out, "mod day{day};")?;
+        writeln!(&mut out, "pub mod day{day};")?;
     }
     Ok(out)
 }
