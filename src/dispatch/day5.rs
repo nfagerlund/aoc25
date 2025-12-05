@@ -1,3 +1,4 @@
+use crate::util::parse_range;
 use anyhow::anyhow;
 
 pub fn part1(input: &str) -> Result<String, anyhow::Error> {

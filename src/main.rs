@@ -1,5 +1,6 @@
 mod dispatch;
 mod meta;
+mod util;
 
 fn input_string(p: &str) -> String {
     let day = p.split('-').next().expect("actually that can't ever fail.");

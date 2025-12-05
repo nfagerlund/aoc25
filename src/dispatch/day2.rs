@@ -1,3 +1,4 @@
+use crate::util::parse_range;
 use anyhow::anyhow;
 use std::ops::RangeInclusive;
 
@@ -323,13 +324,6 @@ fn process_range_part1(r: RangeInclusive<u64>) -> u64 {
         println!("  found: {}", v);
     }
     sum
-}
-
-fn parse_range(txt: &str) -> Result<RangeInclusive<u64>, anyhow::Error> {
-    let (first, second) = txt.split_once('-').ok_or(anyhow!("not hyphenated pair"))?;
-    let (start, end) = (first.trim().parse::<u64>()?, second.trim().parse::<u64>()?);
-
-    Ok(start..=end)
 }
 
 // ok...... so we're looking for exactly 2x repeated sequences of digits. like 123123.
