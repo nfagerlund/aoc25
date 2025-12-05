@@ -17,7 +17,10 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
 // ignoring actual provided IDs and deduplicating overlapping ranges.
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
     let (ranges, _) = parse_inputs(input)?;
+    let initial_len = ranges.len();
     let merged_ranges = compact_ranges(ranges);
+    let merged_len = merged_ranges.len();
+    println!("Reduced from {initial_len} to {merged_len}");
     let count = merged_ranges
         .iter()
         .map(r_len)
@@ -156,12 +159,13 @@ fn compact_ranges(mut input_ranges: Vec<RangeInclusive<u64>>) -> Vec<RangeInclus
     println!("  in: {:?}", &current);
 
     for next in feed {
-        println!("  in: {:?}", &next);
         if overlaps(&current, &next) {
+            println!("  in: {:?}", &next);
             current = merge(current, next);
         } else {
             // we hit a disjunction.
             println!("merged: {:?}", &current);
+            println!("  in: {:?}", &next);
             output_ranges.push(current);
             current = next;
         }
