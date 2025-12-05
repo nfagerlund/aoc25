@@ -13,6 +13,8 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
     Ok(format!("{count}"))
 }
 
+// Count how many possible fresh ingredient IDs are described by the ranges,
+// ignoring actual provided IDs and deduplicating overlapping ranges.
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
     Err(anyhow!("not implemented"))
 }
@@ -38,7 +40,7 @@ fn part1_test() {
 
 #[test]
 fn part2_test() {
-    assert_eq!(part2(_EXAMPLE).expect("should ok"), "LOL".to_string());
+    assert_eq!(part2(_EXAMPLE).expect("should ok"), "14".to_string());
 }
 
 /// Turn the day5 input string into numeric types
