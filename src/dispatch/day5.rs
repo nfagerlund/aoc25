@@ -95,7 +95,7 @@ fn merge(a: RangeInclusive<u64>, b: RangeInclusive<u64>) -> RangeInclusive<u64> 
 /// oh huh weird that there's no impl ExactSizeIterator for RangeInclusive<u64>.
 /// I guess usize is u32 on 32-bit platforms.....
 fn r_len(r: &RangeInclusive<u64>) -> u64 {
-    r.end() - r.start()
+    r.end() + 1 - r.start()
 }
 
 #[test]
