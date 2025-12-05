@@ -81,7 +81,8 @@ fn cmp_ranges(a: &RangeInclusive<u64>, b: &RangeInclusive<u64>) -> Ordering {
 
 /// only cares about forward overlap, i.e. b is equal to or greater than a. Since we're sorting.
 fn overlaps(a: &RangeInclusive<u64>, b: &RangeInclusive<u64>) -> bool {
-    a.start() <= b.start() && a.end() >= b.start()
+    // this is subtle, see the tests.
+    *a.start() <= *b.start() && b.start().saturating_sub(*a.end()) <= 1
 }
 
 /// Combines two ranges into mega-range.
@@ -113,9 +114,12 @@ fn overlaps_test() {
     assert!(overlaps(&(0..=9), &(5..=12)));
     // exact handoff
     assert!(overlaps(&(0..=9), &(9..=15)));
+    // adjacent counts, actually!! bc these are integers, not fractions.
+    // there is no int between 9 and 10 not covered by the range.
+    assert!(overlaps(&(0..=9), &(10..=15)));
 
-    // disjoint
-    assert!(!overlaps(&(0..=9), &(10..=15)));
+    // disjoint, 10 is in the gap
+    assert!(!overlaps(&(0..=9), &(11..=15)));
 }
 
 #[test]
