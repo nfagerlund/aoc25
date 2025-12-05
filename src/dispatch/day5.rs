@@ -99,6 +99,11 @@ fn r_len(r: &RangeInclusive<u64>) -> u64 {
 }
 
 #[test]
+fn r_len_test() {
+    assert_eq!(r_len(&(1..=4)), 4);
+}
+
+#[test]
 fn overlaps_test() {
     // overlaps but doesn't go further
     assert!(overlaps(&(0..=9), &(0..=8)));
@@ -143,16 +148,22 @@ fn compact_ranges(mut input_ranges: Vec<RangeInclusive<u64>>) -> Vec<RangeInclus
     let mut current = feed
         .next()
         .expect("don't u play ding-dong-ditch with me young man");
+
+    println!("  in: {:?}", &current);
+
     for next in feed {
+        println!("  in: {:?}", &next);
         if overlaps(&current, &next) {
             current = merge(current, next);
         } else {
             // we hit a disjunction.
+            println!("merged: {:?}", &current);
             output_ranges.push(current);
             current = next;
         }
     }
     // we're left with one dangling current range at the end.
+    println!("merged: {:?}", &current);
     output_ranges.push(current);
 
     output_ranges
