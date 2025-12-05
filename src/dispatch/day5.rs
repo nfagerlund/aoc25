@@ -16,7 +16,15 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
 // Count how many possible fresh ingredient IDs are described by the ranges,
 // ignoring actual provided IDs and deduplicating overlapping ranges.
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
-    Err(anyhow!("not implemented"))
+    let (ranges, _) = parse_inputs(input)?;
+    let merged_ranges = compact_ranges(ranges);
+    let count = merged_ranges
+        .iter()
+        .map(r_len)
+        .reduce(|a, b| a + b)
+        .ok_or(anyhow!("compacted list of ranges shouldn't be empty??"))?;
+
+    Ok(format!("{count}"))
 }
 
 // fresh ranges (inclusive), then available ids
@@ -84,6 +92,12 @@ fn merge(a: RangeInclusive<u64>, b: RangeInclusive<u64>) -> RangeInclusive<u64> 
     start..=end
 }
 
+/// oh huh weird that there's no impl ExactSizeIterator for RangeInclusive<u64>.
+/// I guess usize is u32 on 32-bit platforms.....
+fn r_len(r: &RangeInclusive<u64>) -> u64 {
+    r.end() - r.start()
+}
+
 #[test]
 fn overlaps_test() {
     // overlaps but doesn't go further
@@ -118,3 +132,28 @@ fn merge_test() {
     assert_eq!(merge(1..=5, 5..=9), 1..=9);
 }
 
+/// Consume a collection of ranges and return a fully deduplicated collection of
+/// ranges, with all overlapping ranges merged.
+fn compact_ranges(mut input_ranges: Vec<RangeInclusive<u64>>) -> Vec<RangeInclusive<u64>> {
+    // overkill length by definition, but guarantees no third alloc
+    let mut output_ranges = Vec::<RangeInclusive<u64>>::with_capacity(input_ranges.len());
+    input_ranges.sort_by(cmp_ranges);
+
+    let mut feed = input_ranges.into_iter();
+    let mut current = feed
+        .next()
+        .expect("don't u play ding-dong-ditch with me young man");
+    for next in feed {
+        if overlaps(&current, &next) {
+            current = merge(current, next);
+        } else {
+            // we hit a disjunction.
+            output_ranges.push(current);
+            current = next;
+        }
+    }
+    // we're left with one dangling current range at the end.
+    output_ranges.push(current);
+
+    output_ranges
+}
