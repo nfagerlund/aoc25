@@ -59,18 +59,16 @@ fn parse_inputs(input: &str) -> anyhow::Result<(Vec<RangeInclusive<u64>>, Vec<u6
     let (ranges_str, ids_str) = input
         .split_once("\n\n")
         .ok_or(anyhow!("input not a double-newline-separated list pair"))?;
-    // Since this is fallible, I want to use the ? operator to just propagate failure.
-    // But that rules out iterator adaptors, alas, so it's a for loop.
-    let mut ranges = Vec::<RangeInclusive<u64>>::new();
-    for line in ranges_str.lines() {
-        ranges.push(parse_range(line)?);
-    }
-    let mut ids = Vec::<u64>::new();
-    for line in ids_str.lines() {
-        ids.push(line.parse()?);
-    }
 
-    Ok((ranges, ids))
+    // Oh wow, Result<T: FromIterator, E> implements FromIterator! So you can
+    // turn something that woulda been a Vec<Result<T, ...>> into a
+    // Result<Vec<T>, ...>! Despite not being able to use question-mark in a
+    // .map(). that's so awesome.
+    let ranges: anyhow::Result<Vec<RangeInclusive<u64>>> =
+        ranges_str.lines().map(parse_range).collect();
+    let ids: Result<Vec<u64>, std::num::ParseIntError> = ids_str.lines().map(str::parse).collect();
+
+    Ok((ranges?, ids?))
 }
 
 /// what it sez
