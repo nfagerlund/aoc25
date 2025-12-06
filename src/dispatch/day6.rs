@@ -28,11 +28,13 @@ pub fn part2(input: &str) -> Result<String, anyhow::Error> {
 }
 
 // Looks like they all stay positive. 🤗
-const _EXAMPLE: &str = "123 328  51 64
- 45 64  387 23
-  6 98  215 314
-*   +   *   +
-";
+// oh wait fuck
+// this is so nasty
+// END OF LINE SPACES ARE SIGNIFICANT
+// EDITOR STRIPS THEM ON SAVE
+// FOR-REALSIES INPUTS PROBABLY ALSO CORRUPTED, GOTTA RE-DOWNLOAD
+// hate it
+const _EXAMPLE: &str = "123 328  51 64 \n 45 64  387 23 \n  6 98  215 314\n*   +   *   +  \n";
 
 #[test]
 fn part1_test() {
@@ -155,6 +157,7 @@ impl<'a> RTLColumnarProblemMuncher<'a> {
             let maybe_operator = self.operator_feed.next()?;
             storage.push(next_number);
             if let Some(operator) = char_op(maybe_operator) {
+                println!("{} {:?}", maybe_operator, &storage);
                 // all right, first we need to advance EVERY feed line by a
                 // single character to eat the problem-separating space.
                 self.waste_a_column();
