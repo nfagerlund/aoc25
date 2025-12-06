@@ -14,7 +14,17 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
 /// omfg gotta throw it all away. Now columnar position of digits matters.
 /// Derive the *vertically written* numbers and try again.
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
-    Err(anyhow!("not implemented"))
+    let mut muncher = RTLColumnarProblemMuncher::maybe_new(input)
+        .ok_or(anyhow!("Must not have had enough lines??"))?;
+    let mut storage = Vec::<u64>::new();
+    let mut sum = 0_u64;
+
+    while let Some(problem) = muncher.next_problem(storage) {
+        sum += problem.solve();
+        storage = problem.recycle_storage();
+    }
+
+    Ok(format!("{sum}"))
 }
 
 // Looks like they all stay positive. 🤗
@@ -149,10 +159,7 @@ impl<'a> RTLColumnarProblemMuncher<'a> {
                 // single character to eat the problem-separating space.
                 self.waste_a_column();
                 // and then we're done for now.
-                return Some(Problem {
-                    numbers: storage,
-                    operator,
-                });
+                return Some(Problem::new(storage, operator));
             }
         }
     }
