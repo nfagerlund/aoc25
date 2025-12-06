@@ -9,6 +9,8 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
     Ok(format!("{sum}"))
 }
 
+/// omfg gotta throw it all away. Now columnar position of digits matters.
+/// Derive the *vertically written* numbers and try again.
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
     Err(anyhow!("not implemented"))
 }
@@ -27,7 +29,7 @@ fn part1_test() {
 
 #[test]
 fn part2_test() {
-    assert_eq!(part2(_EXAMPLE).expect("should ok"), "LOL".to_string());
+    assert_eq!(part2(_EXAMPLE).expect("should ok"), "3263827".to_string());
 }
 
 /// Mostly just does the record-keeping to make sure we chomp each line of
