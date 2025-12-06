@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use std::fmt::Display;
 use std::iter::Rev;
 use std::ops::Add;
 use std::ops::Mul;
@@ -20,6 +21,7 @@ pub fn part2(input: &str) -> Result<String, anyhow::Error> {
     let mut sum = 0_u64;
 
     while let Some(problem) = muncher.next_problem(storage) {
+        println!("{}", &problem);
         sum += problem.solve();
         storage = problem.recycle_storage();
     }
@@ -46,34 +48,47 @@ fn part2_test() {
     assert_eq!(part2(_EXAMPLE).expect("should ok"), "3263827".to_string());
 }
 
-type Op = fn(u64, u64) -> u64;
+type OpFn = fn(u64, u64) -> u64;
 
-fn str_op(in_str: &str) -> anyhow::Result<Op> {
-    match in_str {
-        "+" => Ok(u64::add),
-        "*" => Ok(u64::mul),
-        _ => Err(anyhow!("Unrecognized operation {in_str}")),
+struct Operation {
+    op_fn: OpFn,
+    name: char,
+}
+
+impl Display for Operation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.name.fmt(f)
     }
 }
 
-fn char_op(in_char: char) -> Option<Op> {
-    match in_char {
+fn char_op(in_char: char) -> Option<Operation> {
+    let maybe_op_fn: Option<OpFn> = match in_char {
         '+' => Some(u64::add),
         '*' => Some(u64::mul),
         _ => None,
-    }
+    };
+    maybe_op_fn.map(|f| Operation {
+        op_fn: f,
+        name: in_char,
+    })
 }
 
 struct Problem {
     // we don't know how many, so we GOTS to vec. or re-implement occupied
     // length knowledge for a fixed array, which no
     numbers: Vec<u64>,
-    operator: Op,
+    operation: Operation,
+}
+
+impl Display for Problem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {:?}", &self.operation, &self.numbers)
+    }
 }
 
 impl Problem {
-    fn new(numbers: Vec<u64>, operator: Op) -> Self {
-        Self { numbers, operator }
+    fn new(numbers: Vec<u64>, operation: Operation) -> Self {
+        Self { numbers, operation }
     }
 
     /// Consume, clear the storage, and return the already-allocated Vec
@@ -81,7 +96,7 @@ impl Problem {
     fn recycle_storage(self) -> Vec<u64> {
         let Self {
             mut numbers,
-            operator: _,
+            operation: _,
         } = self;
         numbers.clear();
         numbers
@@ -92,7 +107,7 @@ impl Problem {
         self.numbers
             .iter()
             .copied()
-            .reduce(self.operator)
+            .reduce(self.operation.op_fn)
             .unwrap_or(0)
     }
 }
@@ -101,9 +116,10 @@ impl Problem {
 // DoubleEndedIterator. Item 2, if we travel from RTL, the operator always marks
 // the final number of the problem.
 
-/// Panics on hard parse errors bc it's a big ol baby (i.e. i'd rather get clear
-/// signals fast and this doesn't have to be resilient, so let's keep our type
-/// signatures clean).
+/// Walk through digit + operator columns in right-to-left direction, extracting
+/// math problems. Each column has either a number, a number and an operator
+/// (signalling the end of the problem), or nothing but spaces (separating
+/// problems).
 struct RTLColumnarProblemMuncher<'a> {
     digit_feeds: Vec<Rev<Chars<'a>>>,
     operator_feed: Rev<Chars<'a>>,
@@ -123,26 +139,29 @@ impl<'a> RTLColumnarProblemMuncher<'a> {
         })
     }
 
-    fn waste_a_column(&mut self) {
+    fn waste_column(&mut self) {
         for digit_feed in self.digit_feeds.iter_mut() {
             digit_feed.next();
         }
         self.operator_feed.next();
     }
 
-    /// DANGER: this ain't pub, don't call it. (I don't feel like extracting
-    /// this to a separate mod rn.)
-    /// Bails when at least one feed line is empty.
-    fn extract_number(&mut self) -> Option<u64> {
+    /// This is the place where we guarantee lockstep processing of all our line
+    /// iterators. Bails when any feed line runs out.
+    fn process_column(&mut self) -> Option<(u64, Option<Operation>)> {
         let mut accum = 0_u64;
         for digit_feed in self.digit_feeds.iter_mut() {
             // Spaces can happen anywhere in the column, just ignore em.
-            if let Some(digit) = digit_feed.next()?.to_digit(10) {
+            let digit_char = digit_feed.next()?;
+            if let Some(digit) = digit_char.to_digit(10) {
                 accum *= 10;
                 accum += digit as u64;
             }
         }
-        Some(accum)
+
+        let op_char = self.operator_feed.next()?;
+        let maybe_operation = char_op(op_char);
+        Some((accum, maybe_operation))
     }
 
     /// not gonna impl Iterator this time because I want to recycle that vec.
@@ -153,22 +172,28 @@ impl<'a> RTLColumnarProblemMuncher<'a> {
         // loop til we see an op, then return problem. soon as we hit a none on
         // ANY feed line, bail.
         loop {
-            let next_number = self.extract_number()?;
-            let maybe_operator = self.operator_feed.next()?;
+            let (next_number, maybe_operation) = self.process_column()?;
             storage.push(next_number);
-            if let Some(operator) = char_op(maybe_operator) {
-                println!("{} {:?}", maybe_operator, &storage);
+            if let Some(operation) = maybe_operation {
                 // all right, first we need to advance EVERY feed line by a
                 // single character to eat the problem-separating space.
-                self.waste_a_column();
+                self.waste_column();
                 // and then we're done for now.
-                return Some(Problem::new(storage, operator));
+                return Some(Problem::new(storage, operation));
             }
         }
     }
 }
 
 // -------- PART ONE EJECTA GOES BELOW THIS LINE ---------
+
+fn str_op(in_str: &str) -> anyhow::Result<OpFn> {
+    match in_str {
+        "+" => Ok(u64::add),
+        "*" => Ok(u64::mul),
+        _ => Err(anyhow!("Unrecognized operation {in_str}")),
+    }
+}
 
 /// Mostly just does the record-keeping to make sure we chomp each line of
 /// tokens in lockstep.
@@ -201,7 +226,7 @@ impl<'a> LinearProblemMuncher<'a> {
 
     // Hmm, at this point we gotta start translating from result to option... I
     // think I'll just panic instead 👍🏼👍🏼👍🏼
-    fn next_operator(&mut self) -> Option<Op> {
+    fn next_operator(&mut self) -> Option<OpFn> {
         let op_str = self.operator_feed().next()?;
         Some(str_op(op_str).unwrap())
     }
