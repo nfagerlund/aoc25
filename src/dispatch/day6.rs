@@ -1,6 +1,8 @@
 use anyhow::anyhow;
+use std::iter::Rev;
 use std::ops::Add;
 use std::ops::Mul;
+use std::str::Chars;
 
 /// Solve all the columnar addition-or-multiplication problems, and sum the answers.
 pub fn part1(input: &str) -> Result<String, anyhow::Error> {
@@ -31,6 +33,132 @@ fn part1_test() {
 fn part2_test() {
     assert_eq!(part2(_EXAMPLE).expect("should ok"), "3263827".to_string());
 }
+
+type Op = fn(u64, u64) -> u64;
+
+fn str_op(in_str: &str) -> anyhow::Result<Op> {
+    match in_str {
+        "+" => Ok(u64::add),
+        "*" => Ok(u64::mul),
+        _ => Err(anyhow!("Unrecognized operation {in_str}")),
+    }
+}
+
+fn char_op(in_char: char) -> Option<Op> {
+    match in_char {
+        '+' => Some(u64::add),
+        '*' => Some(u64::mul),
+        _ => None,
+    }
+}
+
+struct Problem {
+    // we don't know how many, so we GOTS to vec. or re-implement occupied
+    // length knowledge for a fixed array, which no
+    numbers: Vec<u64>,
+    operator: Op,
+}
+
+impl Problem {
+    fn new(numbers: Vec<u64>, operator: Op) -> Self {
+        Self { numbers, operator }
+    }
+
+    /// Consume, clear the storage, and return the already-allocated Vec
+    /// for re-use.
+    fn recycle_storage(self) -> Vec<u64> {
+        let Self {
+            mut numbers,
+            operator: _,
+        } = self;
+        numbers.clear();
+        numbers
+    }
+
+    /// The Answre
+    fn solve(&self) -> u64 {
+        self.numbers
+            .iter()
+            .copied()
+            .reduce(self.operator)
+            .unwrap_or(0)
+    }
+}
+
+// Ok, now..... in some ways, this is actually easier. Item 1, Chars implements
+// DoubleEndedIterator. Item 2, if we travel from RTL, the operator always marks
+// the final number of the problem.
+
+/// Panics on hard parse errors bc it's a big ol baby (i.e. i'd rather get clear
+/// signals fast and this doesn't have to be resilient, so let's keep our type
+/// signatures clean).
+struct RTLColumnarProblemMuncher<'a> {
+    digit_feeds: Vec<Rev<Chars<'a>>>,
+    operator_feed: Rev<Chars<'a>>,
+}
+
+impl<'a> RTLColumnarProblemMuncher<'a> {
+    fn maybe_new(input: &'a str) -> Option<Self> {
+        let mut stuff: Vec<Rev<Chars<'a>>> = input.lines().map(|l| l.chars().rev()).collect();
+        let operator_feed = stuff.pop()?;
+        if stuff.is_empty() {
+            return None;
+        }
+
+        Some(Self {
+            digit_feeds: stuff,
+            operator_feed,
+        })
+    }
+
+    fn waste_a_column(&mut self) {
+        for digit_feed in self.digit_feeds.iter_mut() {
+            digit_feed.next();
+        }
+        self.operator_feed.next();
+    }
+
+    /// DANGER: this ain't pub, don't call it. (I don't feel like extracting
+    /// this to a separate mod rn.)
+    /// Bails when at least one feed line is empty.
+    fn extract_number(&mut self) -> Option<u64> {
+        let mut accum = 0_u64;
+        for digit_feed in self.digit_feeds.iter_mut() {
+            // Spaces can happen anywhere in the column, just ignore em.
+            if let Some(digit) = digit_feed.next()?.to_digit(10) {
+                accum *= 10;
+                accum += digit as u64;
+            }
+        }
+        Some(accum)
+    }
+
+    /// not gonna impl Iterator this time because I want to recycle that vec.
+    fn next_problem(&mut self, mut storage: Vec<u64>) -> Option<Problem> {
+        // shoulda been wasted already but just to be sure,
+        storage.clear();
+
+        // loop til we see an op, then return problem. soon as we hit a none on
+        // ANY feed line, bail.
+        loop {
+            let next_number = self.extract_number()?;
+            let maybe_operator = self.operator_feed.next()?;
+            storage.push(next_number);
+            if let Some(operator) = char_op(maybe_operator) {
+                // all right, first we need to advance EVERY feed line by a
+                // single character to eat the problem-separating space.
+                self.waste_a_column();
+                // and then we're done for now.
+                return Some(Problem {
+                    numbers: storage,
+                    operator,
+                });
+            }
+        }
+    }
+}
+
+// -------- PART ONE EJECTA GOES BELOW THIS LINE ---------
 
 /// Mostly just does the record-keeping to make sure we chomp each line of
 /// tokens in lockstep.
@@ -92,16 +220,6 @@ impl<'a> Iterator for LinearProblemMuncher<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.next_solution()
-    }
-}
-
-type Op = fn(u64, u64) -> u64;
-
-fn str_op(in_str: &str) -> anyhow::Result<Op> {
-    match in_str {
-        "+" => Ok(u64::add),
-        "*" => Ok(u64::mul),
-        _ => Err(anyhow!("Unrecognized operation {in_str}")),
     }
 }
 
