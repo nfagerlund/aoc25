@@ -1,8 +1,12 @@
 use anyhow::anyhow;
+use std::ops::Add;
+use std::ops::Mul;
 
 /// Solve all the columnar addition-or-multiplication problems, and sum the answers.
 pub fn part1(input: &str) -> Result<String, anyhow::Error> {
-    Err(anyhow!("not implemented"))
+    let muncher = LinearProblemMuncher::try_new(input)?;
+    let sum = muncher.reduce(u64::add).expect("wait why's it empty");
+    Ok(format!("{sum}"))
 }
 
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
@@ -24,6 +28,79 @@ fn part1_test() {
 #[test]
 fn part2_test() {
     assert_eq!(part2(_EXAMPLE).expect("should ok"), "LOL".to_string());
+}
+
+/// Mostly just does the record-keeping to make sure we chomp each line of
+/// tokens in lockstep.
+struct LinearProblemMuncher<'a> {
+    storage: Vec<SpaceExcavator<'a>>,
+}
+
+impl<'a> LinearProblemMuncher<'a> {
+    // Bounds check here lets us ignore hella-malformed input later.
+    fn try_new(input: &'a str) -> anyhow::Result<Self> {
+        let storage: Vec<_> = input.lines().map(SpaceExcavator::new).collect();
+        if storage.len() < 2 {
+            Err(anyhow!(
+                "Malformed input: we need at least one numbers line and an operators line."
+            ))
+        } else {
+            Ok(Self { storage })
+        }
+    }
+
+    fn operator_feed(&mut self) -> &mut SpaceExcavator<'a> {
+        let len = self.storage.len();
+        &mut self.storage[len - 1]
+    }
+
+    fn number_feeds(&mut self) -> &mut [SpaceExcavator<'a>] {
+        let len = self.storage.len();
+        &mut self.storage[0..(len - 1)]
+    }
+
+    // Hmm, at this point we gotta start translating from result to option... I
+    // think I'll just panic instead 👍🏼👍🏼👍🏼
+    fn next_operator(&mut self) -> Option<Op> {
+        let op_str = self.operator_feed().next()?;
+        Some(str_op(op_str).unwrap())
+    }
+
+    // eh........ in this case I guess I'll just swallow parse errors as
+    // nones..... hate it slightly. Oh, by the way, you must consume the whole
+    // iterator here or else everything kinda goes to hell. I don't feel like
+    // making a new type for that and implementing drop. all told, this experiment
+    // has been a very intensely qualified success.
+    fn dangerous_next_numbers_iter(&mut self) -> impl Iterator<Item = u64> {
+        self.number_feeds()
+            .iter_mut()
+            .filter_map(|feed| feed.next().and_then(|s| s.parse::<u64>().ok()))
+    }
+
+    /// Never call dangerous_next_numbers_iter or next_operator, always call
+    /// this instead.
+    fn next_solution(&mut self) -> Option<u64> {
+        let op = self.next_operator()?;
+        self.dangerous_next_numbers_iter().reduce(op)
+    }
+}
+
+impl<'a> Iterator for LinearProblemMuncher<'a> {
+    type Item = u64;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next_solution()
+    }
+}
+
+type Op = fn(u64, u64) -> u64;
+
+fn str_op(in_str: &str) -> anyhow::Result<Op> {
+    match in_str {
+        "+" => Ok(u64::add),
+        "*" => Ok(u64::mul),
+        _ => Err(anyhow!("Unrecognized operation {in_str}")),
+    }
 }
 
 /// An iterator to split space-separated strings where the number of spaces
