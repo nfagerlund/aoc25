@@ -69,7 +69,13 @@ fn is_beam_start(byte: u8) -> bool {
 }
 
 struct BeamState {
+    /// For each lane of the manifold, the number of paths a beam could have
+    /// taken to get there, given the split events recorded so far. For part 1,
+    /// we only care about > 0, but part 2 wants totals.
     state: Vec<u64>,
+    /// The number of unique splitters that the beam has collided with, without
+    /// regard for how many possible paths the beam could have taken to get to
+    /// each splitter. Part 1 wants this but part 2 doesn't care.
     split_events: u64,
     // scratch space
     collisions: Option<Vec<usize>>,
@@ -92,7 +98,9 @@ impl BeamState {
         }
     }
 
-    /// vacate this beam, spawn left and right beams.
+    /// vacate this lane, spawn left and right beams. hitting a splitter doubles
+    /// the number of paths that pass through it; if there were six paths leading to
+    /// this splitter, then twelve lead out of it.
     fn split(&mut self, position: usize) {
         // I actually want to panic here:
         let left = position.checked_sub(1).expect("walked off the left edge!");
