@@ -3,7 +3,14 @@ use anyhow::anyhow;
 /// How many times does the beam split, starting from its origin point?
 /// remember they can reconverge.
 pub fn part1(input: &str) -> Result<String, anyhow::Error> {
-    Err(anyhow!("not implemented"))
+    let mut lines = input.lines();
+    let s_line = lines.next().ok_or(anyhow!("empty input"))?;
+    let mut state = BeamState::initialize(s_line);
+    for line in lines {
+        state.advance(line);
+    }
+
+    Ok(format!("{}", state.split_events))
 }
 
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
@@ -56,7 +63,7 @@ struct BeamState {
 impl BeamState {
     fn initialize(s_line: &str) -> Self {
         let mut state = Vec::<bool>::with_capacity(s_line.len());
-        state.fill(false);
+        state.resize(s_line.len(), false);
         for (i, _) in s_line
             .bytes()
             .enumerate()
