@@ -7,8 +7,14 @@ use std::str::Chars;
 
 /// Solve all the columnar addition-or-multiplication problems, and sum the answers.
 pub fn part1(input: &str) -> Result<String, anyhow::Error> {
-    let muncher = LinearProblemMuncher::try_new(input)?;
-    let sum = muncher.reduce(u64::add).expect("wait why's it empty");
+    let mut muncher = LinearProblemMuncher::maybe_new(input).ok_or(anyhow!("not enough lines?"))?;
+    let mut storage = Vec::<u64>::new();
+    let mut sum = 0_u64;
+    while let Some(problem) = muncher.next_problem(storage) {
+        println!("{}", &problem);
+        sum += problem.solve();
+        storage = problem.recycle_storage();
+    }
     Ok(format!("{sum}"))
 }
 
@@ -187,74 +193,44 @@ impl<'a> RTLColumnarProblemMuncher<'a> {
 
 // -------- PART ONE EJECTA GOES BELOW THIS LINE ---------
 
-fn str_op(in_str: &str) -> anyhow::Result<OpFn> {
-    match in_str {
-        "+" => Ok(u64::add),
-        "*" => Ok(u64::mul),
-        _ => Err(anyhow!("Unrecognized operation {in_str}")),
-    }
+fn str_op(in_str: &str) -> Option<Operation> {
+    in_str.chars().next().and_then(char_op)
 }
 
 /// Mostly just does the record-keeping to make sure we chomp each line of
 /// tokens in lockstep.
 struct LinearProblemMuncher<'a> {
-    storage: Vec<SpaceExcavator<'a>>,
+    number_feeds: Vec<SpaceExcavator<'a>>,
+    operator_feed: SpaceExcavator<'a>,
 }
 
 impl<'a> LinearProblemMuncher<'a> {
-    // Bounds check here lets us ignore hella-malformed input later.
-    fn try_new(input: &'a str) -> anyhow::Result<Self> {
-        let storage: Vec<_> = input.lines().map(SpaceExcavator::new).collect();
-        if storage.len() < 2 {
-            Err(anyhow!(
-                "Malformed input: we need at least one numbers line and an operators line."
-            ))
-        } else {
-            Ok(Self { storage })
+    fn maybe_new(input: &'a str) -> Option<Self> {
+        let mut stuff: Vec<SpaceExcavator<'a>> = input.lines().map(SpaceExcavator::new).collect();
+        let operator_feed = stuff.pop()?;
+        if stuff.is_empty() {
+            return None;
         }
+
+        Some(Self {
+            number_feeds: stuff,
+            operator_feed,
+        })
     }
 
-    fn operator_feed(&mut self) -> &mut SpaceExcavator<'a> {
-        let len = self.storage.len();
-        &mut self.storage[len - 1]
+    fn next_operator(&mut self) -> Option<Operation> {
+        self.operator_feed.next().and_then(str_op)
     }
 
-    fn number_feeds(&mut self) -> &mut [SpaceExcavator<'a>] {
-        let len = self.storage.len();
-        &mut self.storage[0..(len - 1)]
-    }
+    fn next_problem(&mut self, mut storage: Vec<u64>) -> Option<Problem> {
+        storage.clear();
 
-    // Hmm, at this point we gotta start translating from result to option... I
-    // think I'll just panic instead 👍🏼👍🏼👍🏼
-    fn next_operator(&mut self) -> Option<OpFn> {
-        let op_str = self.operator_feed().next()?;
-        Some(str_op(op_str).unwrap())
-    }
-
-    // eh........ in this case I guess I'll just swallow parse errors as
-    // nones..... hate it slightly. Oh, by the way, you must consume the whole
-    // iterator here or else everything kinda goes to hell. I don't feel like
-    // making a new type for that and implementing drop. all told, this experiment
-    // has been a very intensely qualified success.
-    fn dangerous_next_numbers_iter(&mut self) -> impl Iterator<Item = u64> {
-        self.number_feeds()
-            .iter_mut()
-            .filter_map(|feed| feed.next().and_then(|s| s.parse::<u64>().ok()))
-    }
-
-    /// Never call dangerous_next_numbers_iter or next_operator, always call
-    /// this instead.
-    fn next_solution(&mut self) -> Option<u64> {
+        for feed in self.number_feeds.iter_mut() {
+            let num: u64 = feed.next()?.parse().ok()?;
+            storage.push(num);
+        }
         let op = self.next_operator()?;
-        self.dangerous_next_numbers_iter().reduce(op)
-    }
-}
-
-impl<'a> Iterator for LinearProblemMuncher<'a> {
-    type Item = u64;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.next_solution()
+        Some(Problem::new(storage, op))
     }
 }
 
