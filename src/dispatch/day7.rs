@@ -3,14 +3,18 @@ use anyhow::anyhow;
 /// How many times does the beam split, starting from its origin point?
 /// remember they can reconverge.
 pub fn part1(input: &str) -> Result<String, anyhow::Error> {
+    let state = shared_impl(input)?;
+    Ok(format!("{}", state.split_events))
+}
+
+fn shared_impl(input: &str) -> anyhow::Result<BeamState> {
     let mut lines = input.lines();
     let s_line = lines.next().ok_or(anyhow!("empty input"))?;
     let mut state = BeamState::initialize(s_line);
     for line in lines {
         state.advance(line);
     }
-
-    Ok(format!("{}", state.split_events))
+    Ok(state)
 }
 
 /// How many paths could a single particle take through the forest of splitters?
@@ -24,7 +28,8 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
 /// If we add the fourth row... is that 13?? yeah. So, I think it's almost like
 /// overlapping beams have *more weight.* Let's go with that and see.
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
-    Err(anyhow!("not implemented"))
+    let state = shared_impl(input)?;
+    Ok(format!("{}", state.total_world_lines()))
 }
 
 const _EXAMPLE: &str = ".......S.......
@@ -64,7 +69,7 @@ fn is_beam_start(byte: u8) -> bool {
 }
 
 struct BeamState {
-    state: Vec<bool>,
+    state: Vec<u64>,
     split_events: u64,
     // scratch space
     collisions: Option<Vec<usize>>,
@@ -72,14 +77,13 @@ struct BeamState {
 
 impl BeamState {
     fn initialize(s_line: &str) -> Self {
-        let mut state = Vec::<bool>::with_capacity(s_line.len());
-        state.resize(s_line.len(), false);
+        let mut state: Vec<u64> = vec![0; s_line.len()];
         for (i, _) in s_line
             .bytes()
             .enumerate()
             .filter(|(_, b)| is_beam_start(*b))
         {
-            state[i] = true;
+            state[i] = 1;
         }
         Self {
             state,
@@ -97,9 +101,14 @@ impl BeamState {
             panic!("walked off the right edge!");
         }
 
-        self.state[position] = false;
-        self.state[left] = true;
-        self.state[right] = true;
+        let routes = self.state[position];
+        self.state[position] = 0;
+        self.state[left] += routes;
+        self.state[right] += routes;
+    }
+
+    fn total_world_lines(&self) -> u64 {
+        self.state.iter().sum()
     }
 
     fn advance(&mut self, line: &str) {
@@ -116,7 +125,7 @@ impl BeamState {
             .state
             .iter()
             .enumerate()
-            .filter(|(_, is_beam)| **is_beam)
+            .filter(|(_, routes)| **routes > 0)
         {
             if is_splitter(b_line[beam_index]) {
                 collisions.push(beam_index);
