@@ -13,6 +13,16 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
     Ok(format!("{}", state.split_events))
 }
 
+/// How many paths could a single particle take through the forest of splitters?
+/// uhhhhh...
+///
+/// So, if we take the first three rows with splitters from the example as the
+/// whole deal, we get 8. So, what would be overlapping beams keep getting
+/// tracked separately -- it's six exits from the third row, but the middle
+/// splitter's outputs count twice.
+///
+/// If we add the fourth row... is that 13?? yeah. So, I think it's almost like
+/// overlapping beams have *more weight.* Let's go with that and see.
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
     Err(anyhow!("not implemented"))
 }
@@ -42,7 +52,7 @@ fn part1_test() {
 
 #[test]
 fn part2_test() {
-    assert_eq!(part2(_EXAMPLE).expect("should ok"), "LOL".to_string());
+    assert_eq!(part2(_EXAMPLE).expect("should ok"), "40".to_string());
 }
 
 fn is_splitter(byte: u8) -> bool {
