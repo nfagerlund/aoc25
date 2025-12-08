@@ -17,7 +17,7 @@ pub struct Grid<T> {
     pub width: usize,
 }
 
-type Coords = (usize, usize);
+pub type Coords = (usize, usize);
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Dir {

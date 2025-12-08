@@ -1,11 +1,12 @@
 use std::{
+    collections::HashSet,
     num::ParseIntError,
     ops::{Add, Sub},
 };
 
 use anyhow::anyhow;
 
-use crate::util::Grid;
+use crate::util::{Coords, Grid};
 
 /// Connect the *1000* closest-together pairs of boxes to form some number of
 /// circuits. Find the sizes of the *three* largest circuits, and multiply them.
@@ -14,7 +15,44 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
 }
 
 pub fn part1_real(input: &str, connect: usize) -> anyhow::Result<String> {
-    Err(anyhow!("not implemented"))
+    let points = load_points(input)?;
+    let grid = grid_of_all_distances(&points)?;
+    // uhhhhhh
+    // transform and filter so we've got a deduplicated, sortable list of (len, coords).
+    let mut connections: Vec<(i64, Coords)> = grid
+        .storage
+        .iter()
+        .copied()
+        .enumerate()
+        .filter_map(|(i, len)| {
+            let coords = grid.coords(i);
+            if coords.1 >= coords.0 {
+                // then it's either a self-connect or a duplicate.
+                None
+            } else {
+                Some((len, coords))
+            }
+        })
+        .collect();
+    // sort em
+    connections.sort_by_key(|(len, _coords)| *len);
+    // Build circuits... for a while.
+    let mut circuits = Circuits::new();
+    for (_len, (left, right)) in connections.into_iter().take(connect) {
+        circuits.add_connection(points[left], points[right]);
+    }
+    // Sort em, multiply the three biggest lengths
+    circuits.sort_descending();
+
+    let product = circuits
+        .stuff
+        .iter()
+        .take(3)
+        .map(|set| set.len())
+        .reduce(|acc, e| acc * e)
+        .expect("Need at least 3 circuits");
+
+    Ok(format!("{product}"))
 }
 
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
@@ -73,8 +111,10 @@ fn load_points(input: &str) -> Result<Vec<Pt>, ParseIntError> {
 
 /// The resulting grid contains (squared) distances. The scale of the X and Y
 /// axes of the grid correspond to indices into the points slice, so we're
-/// counting on you not re-sorting that.
-fn grid_of_all_connections(points: &[Pt]) -> anyhow::Result<Grid<i64>> {
+/// counting on you not re-sorting that. The grid has redundant info; we don't
+/// want to double-count any connections or do any self-connectons. But the
+/// ability to derive coords is too useful.
+fn grid_of_all_distances(points: &[Pt]) -> anyhow::Result<Grid<i64>> {
     let mut storage = Vec::<i64>::with_capacity(points.len() * points.len());
     for y in points {
         for x in points {
@@ -84,7 +124,68 @@ fn grid_of_all_connections(points: &[Pt]) -> anyhow::Result<Grid<i64>> {
     Grid::try_new(points.len(), storage)
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, Default)]
+/// I'm gonna stop tracking the direct connections once you're in a circuit.
+/// bugs bunny full communism dot jpg.
+struct Circuits {
+    stuff: Vec<HashSet<Pt>>,
+}
+
+impl Circuits {
+    fn new() -> Self {
+        Self { stuff: Vec::new() }
+    }
+
+    fn sort_descending(&mut self) {
+        self.stuff.sort_by(|a, b| b.len().cmp(&a.len()));
+    }
+
+    /// returns the index of the circuit containing the specified point, if extant.
+    fn idx_containing_point(&self, point: Pt) -> Option<usize> {
+        self.stuff.iter().enumerate().find_map(
+            |(i, set)| {
+                if set.contains(&point) { Some(i) } else { None }
+            },
+        )
+    }
+
+    fn add_connection(&mut self, left: Pt, right: Pt) {
+        let contains_left_idx = self.idx_containing_point(left);
+        let contains_right_idx = self.idx_containing_point(right);
+        match (contains_left_idx, contains_right_idx) {
+            (None, None) => {
+                let mut new = HashSet::new();
+                new.insert(left);
+                new.insert(right);
+                self.stuff.push(new);
+            }
+            (None, Some(right_i)) => {
+                self.stuff[right_i].insert(left);
+            }
+            (Some(left_i), None) => {
+                self.stuff[left_i].insert(right);
+            }
+            (Some(left_i), Some(right_i)) => {
+                // Merge em!!
+                let (larger_i, smaller_i) = match left_i.cmp(&right_i) {
+                    std::cmp::Ordering::Less => (right_i, left_i),
+                    std::cmp::Ordering::Equal => {
+                        // oops???? we've been here before
+                        return;
+                    }
+                    std::cmp::Ordering::Greater => (left_i, right_i),
+                };
+                // Remove the further-out one, so the index of the other stays stable...
+                let mut combined = self.stuff.remove(larger_i);
+                let absorbee = self.stuff.get_mut(smaller_i).expect("impossible");
+                combined.extend(absorbee.drain());
+                // Swap the combined one into place
+                self.stuff[smaller_i] = combined;
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, Default)]
 struct Pt {
     x: i64,
     y: i64,
