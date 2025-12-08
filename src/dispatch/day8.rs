@@ -1,6 +1,12 @@
 use anyhow::anyhow;
 
+/// Connect the *1000* closest-together pairs of boxes to form some number of
+/// circuits. Find the sizes of the *three* largest circuits, and multiply them.
 pub fn part1(input: &str) -> Result<String, anyhow::Error> {
+    part1_real(input, 1000)
+}
+
+pub fn part1_real(input: &str, connect: usize) -> anyhow::Result<String> {
     Err(anyhow!("not implemented"))
 }
 
@@ -30,9 +36,14 @@ const _EXAMPLE: &str = "162,817,812
 425,690,689
 ";
 
+// hey notably: this only takes 10 shortest, and the real thing takes 1000. So
+// we need diverging impls.
 #[test]
 fn part1_test() {
-    assert_eq!(part1(_EXAMPLE).expect("should ok"), "40".to_string());
+    assert_eq!(
+        part1_real(_EXAMPLE, 10).expect("should ok"),
+        "40".to_string()
+    );
 }
 
 #[test]
