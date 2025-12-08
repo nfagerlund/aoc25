@@ -55,6 +55,8 @@ pub fn part1_real(input: &str, connect: usize) -> anyhow::Result<String> {
     Ok(format!("{product}"))
 }
 
+/// Connect nearest boxes until everything is on one circuit. Record the final
+/// connection, and get a checksum by multiplying the members' x coords.
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
     Err(anyhow!("not implemented"))
 }
@@ -93,7 +95,7 @@ fn part1_test() {
 
 #[test]
 fn part2_test() {
-    assert_eq!(part2(_EXAMPLE).expect("should ok"), "LOL".to_string());
+    assert_eq!(part2(_EXAMPLE).expect("should ok"), "25272".to_string());
 }
 
 fn pt_from_str(line: &str) -> Result<Pt, ParseIntError> {
