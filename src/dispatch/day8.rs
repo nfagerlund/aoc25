@@ -4,8 +4,6 @@ use std::{
     ops::{Add, Sub},
 };
 
-use anyhow::anyhow;
-
 use crate::util::{Coords, Grid};
 
 /// Connect the *1000* closest-together pairs of boxes to form some number of
@@ -165,7 +163,7 @@ impl Circuits {
     }
 
     fn sort_descending(&mut self) {
-        self.stuff.sort_by(|a, b| b.len().cmp(&a.len()));
+        self.stuff.sort_by_key(|set| std::cmp::Reverse(set.len()));
     }
 
     /// returns the index of the circuit containing the specified point, if extant.
