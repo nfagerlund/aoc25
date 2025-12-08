@@ -9,8 +9,9 @@ pub mod day4;
 pub mod day5;
 pub mod day6;
 pub mod day7;
+pub mod day8;
 
-pub const DAYS: &[&str] = &["1", "2", "3", "4", "5", "6", "7"];
+pub const DAYS: &[&str] = &["1", "2", "3", "4", "5", "6", "7", "8"];
 
 /// Maps puzzle identifiers to implementation functions. The main thing you
 /// gotta add when starting a new day.
@@ -30,6 +31,8 @@ pub fn puzzle_fn(p: &str) -> fn(&str) -> Result<String, anyhow::Error> {
         "6-2" => day6::part2,
         "7-1" => day7::part1,
         "7-2" => day7::part2,
+        "8-1" => day8::part1,
+        "8-2" => day8::part2,
 
         _ => panic!("That's not a valid puzzle yet"),
     }
