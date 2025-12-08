@@ -1,10 +1,6 @@
-use std::{
-    collections::HashSet,
-    num::ParseIntError,
-    ops::{Add, Sub},
-};
+use std::{collections::HashSet, num::ParseIntError};
 
-use crate::util::{Coords, Grid};
+use crate::util::{Coords, Grid, Pt};
 
 /// Connect the *1000* closest-together pairs of boxes to form some number of
 /// circuits. Find the sizes of the *three* largest circuits, and multiply them.
@@ -97,17 +93,9 @@ fn part2_test() {
     assert_eq!(part2(_EXAMPLE).expect("should ok"), "25272".to_string());
 }
 
-fn pt_from_str(line: &str) -> Result<Pt, ParseIntError> {
-    let mut stuff = line.split(',');
-    let x = stuff.next().unwrap_or_default().parse::<i64>()?;
-    let y = stuff.next().unwrap_or_default().parse::<i64>()?;
-    let z = stuff.next().unwrap_or_default().parse::<i64>()?;
-    Ok(Pt::new(x, y, z))
-}
-
 fn load_points(input: &str) -> Result<Vec<Pt>, ParseIntError> {
     // hahahahahahaha hell yeah
-    input.lines().map(pt_from_str).collect()
+    input.lines().map(Pt::from_str).collect()
 }
 
 /// The resulting grid contains (squared) distances. The scale of the X and Y
@@ -212,66 +200,5 @@ impl Circuits {
 
         // If we didn't hit that one early-return case, we connected.
         true
-    }
-}
-
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, Default)]
-struct Pt {
-    x: i64,
-    y: i64,
-    z: i64,
-}
-
-impl Pt {
-    fn new(x: i64, y: i64, z: i64) -> Self {
-        Self { x, y, z }
-    }
-
-    fn square_components(&self) -> Self {
-        Self {
-            x: self.x * self.x,
-            y: self.y * self.y,
-            z: self.z * self.z,
-        }
-    }
-
-    /// So, the Z-axis is perpendicular to any segment on the x/y plane. Thus if
-    /// you start at the end of a segment and go in + or - Z for some distance,
-    /// you form the legs of a right triangle. The original segment was already
-    /// the hypotenuse of an earlier right triangle. So you end up with x^2 +
-    /// y^2 = c^2 (where c is the x/y segment), then c^2 + z^2 = d^2 (where d is
-    /// the distance we originally wanted). Notably we never have to square-root
-    /// c, we can just turn straight around and feed it back.
-    ///
-    /// And as long as we're only *comparing* distances and not actually
-    /// measuring them, we never have to unsquare d either, because n^2 > m^2
-    /// whenever n > m.
-    fn distance_squared(&self, other: &Self) -> i64 {
-        let diff_sqd = (*self - *other).square_components();
-        diff_sqd.x + diff_sqd.y + diff_sqd.z
-    }
-}
-
-impl Sub for Pt {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-            z: self.z - rhs.z,
-        }
-    }
-}
-
-impl Add for Pt {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Self {
-            x: self.x + rhs.x,
-            y: self.y + rhs.y,
-            z: self.z + rhs.z,
-        }
     }
 }
