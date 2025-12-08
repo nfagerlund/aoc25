@@ -203,11 +203,10 @@ impl Circuits {
                     std::cmp::Ordering::Greater => (left_i, right_i),
                 };
                 // Remove the further-out one, so the index of the other stays stable...
-                let mut combined = self.stuff.remove(larger_i);
-                let absorbee = self.stuff.get_mut(smaller_i).expect("impossible");
+                let mut absorbee = self.stuff.remove(larger_i);
+                let combined = self.stuff.get_mut(smaller_i).expect("impossible");
+                // absorb the removed one into the retained one
                 combined.extend(absorbee.drain());
-                // Swap the combined one into place
-                self.stuff[smaller_i] = combined;
             }
         }
 
