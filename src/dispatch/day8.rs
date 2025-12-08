@@ -17,25 +17,7 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
 pub fn part1_real(input: &str, connect: usize) -> anyhow::Result<String> {
     let points = load_points(input)?;
     let grid = grid_of_all_distances(&points)?;
-    // uhhhhhh
-    // transform and filter so we've got a deduplicated, sortable list of (len, coords).
-    let mut connections: Vec<(i64, Coords)> = grid
-        .storage
-        .iter()
-        .copied()
-        .enumerate()
-        .filter_map(|(i, len)| {
-            let coords = grid.coords(i);
-            if coords.1 >= coords.0 {
-                // then it's either a self-connect or a duplicate.
-                None
-            } else {
-                Some((len, coords))
-            }
-        })
-        .collect();
-    // sort em
-    connections.sort_by_key(|(len, _coords)| *len);
+    let connections = connection_pairs(&grid);
     // Build circuits... for a while.
     let mut circuits = Circuits::new();
     for (_len, (left, right)) in connections.into_iter().take(connect) {
@@ -58,7 +40,26 @@ pub fn part1_real(input: &str, connect: usize) -> anyhow::Result<String> {
 /// Connect nearest boxes until everything is on one circuit. Record the final
 /// connection, and get a checksum by multiplying the members' x coords.
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
-    Err(anyhow!("not implemented"))
+    // This time there's no divergent impl for test/real.
+    let points = load_points(input)?;
+    let grid = grid_of_all_distances(&points)?;
+    let connections = connection_pairs(&grid);
+
+    // Build circuits 'til done. Keep track of last actual work.
+    let mut circuits = Circuits::new();
+    let mut last_connection = (Pt::default(), Pt::default());
+    for (_len, (left_i, right_i)) in connections {
+        let (left, right) = (points[left_i], points[right_i]);
+        let result = circuits.add_connection(left, right);
+        if result {
+            last_connection = (left, right);
+        }
+    }
+
+    // get the checksum
+    let checksum = last_connection.0.x * last_connection.1.x;
+
+    Ok(format!("{checksum}"))
 }
 
 const _EXAMPLE: &str = "162,817,812
@@ -126,6 +127,32 @@ fn grid_of_all_distances(points: &[Pt]) -> anyhow::Result<Grid<i64>> {
     Grid::try_new(points.len(), storage)
 }
 
+/// Given a grid representing lengths between pairs of boxes, return a sorted
+/// (by distance) list of (clears throat) pairs of indices into the original
+/// points storage that the grid was built from, plus a redundant distance value
+/// that the consumer likely doesn't care about but which isn't worth filtering
+/// out at this point.
+fn connection_pairs(grid: &Grid<i64>) -> Vec<(i64, Coords)> {
+    let mut connections: Vec<(i64, Coords)> = grid
+        .storage
+        .iter()
+        .copied()
+        .enumerate()
+        .filter_map(|(i, len)| {
+            let coords = grid.coords(i);
+            if coords.1 >= coords.0 {
+                // then it's either a self-connect or a duplicate.
+                None
+            } else {
+                Some((len, coords))
+            }
+        })
+        .collect();
+    // sort em
+    connections.sort_by_key(|(len, _coords)| *len);
+    connections
+}
+
 /// I'm gonna stop tracking the direct connections once you're in a circuit.
 /// bugs bunny full communism dot jpg.
 struct Circuits {
@@ -150,7 +177,8 @@ impl Circuits {
         )
     }
 
-    fn add_connection(&mut self, left: Pt, right: Pt) {
+    /// Returns a bool indicating whether we actually made a connection or not.
+    fn add_connection(&mut self, left: Pt, right: Pt) -> bool {
         let contains_left_idx = self.idx_containing_point(left);
         let contains_right_idx = self.idx_containing_point(right);
         match (contains_left_idx, contains_right_idx) {
@@ -171,8 +199,8 @@ impl Circuits {
                 let (larger_i, smaller_i) = match left_i.cmp(&right_i) {
                     std::cmp::Ordering::Less => (right_i, left_i),
                     std::cmp::Ordering::Equal => {
-                        // oops???? we've been here before
-                        return;
+                        // We're in the same set already! No connection needed.
+                        return false;
                     }
                     std::cmp::Ordering::Greater => (left_i, right_i),
                 };
@@ -184,6 +212,9 @@ impl Circuits {
                 self.stuff[smaller_i] = combined;
             }
         }
+
+        // If we didn't hit that one early-return case, we connected.
+        true
     }
 }
 
