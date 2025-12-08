@@ -1,6 +1,11 @@
-use std::ops::{Add, Sub};
+use std::{
+    num::ParseIntError,
+    ops::{Add, Sub},
+};
 
 use anyhow::anyhow;
+
+use crate::util::Grid;
 
 /// Connect the *1000* closest-together pairs of boxes to form some number of
 /// circuits. Find the sizes of the *three* largest circuits, and multiply them.
@@ -53,7 +58,33 @@ fn part2_test() {
     assert_eq!(part2(_EXAMPLE).expect("should ok"), "LOL".to_string());
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+fn pt_from_str(line: &str) -> Result<Pt, ParseIntError> {
+    let mut stuff = line.split(',');
+    let x = stuff.next().unwrap_or_default().parse::<i64>()?;
+    let y = stuff.next().unwrap_or_default().parse::<i64>()?;
+    let z = stuff.next().unwrap_or_default().parse::<i64>()?;
+    Ok(Pt::new(x, y, z))
+}
+
+fn load_points(input: &str) -> Result<Vec<Pt>, ParseIntError> {
+    // hahahahahahaha hell yeah
+    input.lines().map(pt_from_str).collect()
+}
+
+/// The resulting grid contains (squared) distances. The scale of the X and Y
+/// axes of the grid correspond to indices into the points slice, so we're
+/// counting on you not re-sorting that.
+fn grid_of_all_connections(points: &[Pt]) -> anyhow::Result<Grid<i64>> {
+    let mut storage = Vec::<i64>::with_capacity(points.len() * points.len());
+    for y in points {
+        for x in points {
+            storage.push(x.distance_squared(y));
+        }
+    }
+    Grid::try_new(points.len(), storage)
+}
+
+#[derive(Clone, Copy, PartialEq, Debug, Default)]
 struct Pt {
     x: i64,
     y: i64,
