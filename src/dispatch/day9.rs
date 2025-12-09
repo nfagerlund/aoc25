@@ -15,7 +15,7 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
             let h = stuff[i];
             let w = stuff[j];
             let diff = h - w;
-            let area = diff.x * diff.y;
+            let area = (diff.x.abs() + 1) * (diff.y.abs() + 1);
             println!("{h} x {w}: area {area}");
             combinations.push(area);
         }
