@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::num::ParseIntError;
 use std::ops::{Add, Sub};
 
@@ -70,6 +71,12 @@ impl Add for Vec3 {
     }
 }
 
+impl Display for Vec3 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {}, {})", self.x, self.y, self.z)
+    }
+}
+
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug, Default)]
 pub struct Vec2 {
     pub x: i64,
@@ -131,5 +138,11 @@ impl Add for Vec2 {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
         }
+    }
+}
+
+impl Display for Vec2 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
     }
 }
