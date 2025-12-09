@@ -1,6 +1,6 @@
 use std::{collections::HashSet, num::ParseIntError};
 
-use crate::util::{Coords, Grid, Pt};
+use crate::util::{Coords, Grid, Vec3};
 
 /// Connect the *1000* closest-together pairs of boxes to form some number of
 /// circuits. Find the sizes of the *three* largest circuits, and multiply them.
@@ -41,7 +41,7 @@ pub fn part2(input: &str) -> Result<String, anyhow::Error> {
 
     // Build circuits 'til done. Keep track of last actual work.
     let mut circuits = Circuits::new();
-    let mut last_connection = (Pt::default(), Pt::default());
+    let mut last_connection = (Vec3::default(), Vec3::default());
     for (_len, (left_i, right_i)) in connections {
         let (left, right) = (points[left_i], points[right_i]);
         let result = circuits.add_connection(left, right);
@@ -93,9 +93,9 @@ fn part2_test() {
     assert_eq!(part2(_EXAMPLE).expect("should ok"), "25272".to_string());
 }
 
-fn load_points(input: &str) -> Result<Vec<Pt>, ParseIntError> {
+fn load_points(input: &str) -> Result<Vec<Vec3>, ParseIntError> {
     // hahahahahahaha hell yeah
-    input.lines().map(Pt::from_str).collect()
+    input.lines().map(Vec3::from_str).collect()
 }
 
 /// The resulting grid contains (squared) distances. The scale of the X and Y
@@ -103,7 +103,7 @@ fn load_points(input: &str) -> Result<Vec<Pt>, ParseIntError> {
 /// counting on you not re-sorting that. The grid has redundant info; we don't
 /// want to double-count any connections or do any self-connectons. But the
 /// ability to derive coords is too useful.
-fn grid_of_all_distances(points: &[Pt]) -> anyhow::Result<Grid<i64>> {
+fn grid_of_all_distances(points: &[Vec3]) -> anyhow::Result<Grid<i64>> {
     let mut storage = Vec::<i64>::with_capacity(points.len() * points.len());
     for y in points {
         for x in points {
@@ -142,7 +142,7 @@ fn connection_pairs(grid: &Grid<i64>) -> Vec<(i64, Coords)> {
 /// I'm gonna stop tracking the direct connections once you're in a circuit.
 /// bugs bunny full communism dot jpg.
 struct Circuits {
-    stuff: Vec<HashSet<Pt>>,
+    stuff: Vec<HashSet<Vec3>>,
 }
 
 impl Circuits {
@@ -155,7 +155,7 @@ impl Circuits {
     }
 
     /// returns the index of the circuit containing the specified point, if extant.
-    fn idx_containing_point(&self, point: Pt) -> Option<usize> {
+    fn idx_containing_point(&self, point: Vec3) -> Option<usize> {
         self.stuff.iter().enumerate().find_map(
             |(i, set)| {
                 if set.contains(&point) { Some(i) } else { None }
@@ -164,7 +164,7 @@ impl Circuits {
     }
 
     /// Returns a bool indicating whether we actually made a connection or not.
-    fn add_connection(&mut self, left: Pt, right: Pt) -> bool {
+    fn add_connection(&mut self, left: Vec3, right: Vec3) -> bool {
         let contains_left_idx = self.idx_containing_point(left);
         let contains_right_idx = self.idx_containing_point(right);
         match (contains_left_idx, contains_right_idx) {
