@@ -50,5 +50,5 @@ fn part1_test() {
 
 #[test]
 fn part2_test() {
-    assert_eq!(part2(_EXAMPLE).expect("should ok"), "LOL".to_string());
+    assert_eq!(part2(_EXAMPLE).expect("should ok"), "24".to_string());
 }
