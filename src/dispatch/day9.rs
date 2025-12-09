@@ -1,7 +1,32 @@
+use std::num::ParseIntError;
+
+use crate::util::Vec2;
 use anyhow::anyhow;
 
 pub fn part1(input: &str) -> Result<String, anyhow::Error> {
-    Err(anyhow!("not implemented"))
+    let stuff: Result<Vec<Vec2>, ParseIntError> = input.lines().map(Vec2::from_str).collect();
+    let stuff = stuff?;
+    let mut combinations = Vec::<i64>::with_capacity(stuff.len() * stuff.len() / 2);
+    for i in 0..stuff.len() {
+        if i + 1 >= stuff.len() {
+            break;
+        }
+        for j in (i + 1)..stuff.len() {
+            let h = stuff[i];
+            let w = stuff[j];
+            let diff = h - w;
+            let area = diff.x * diff.y;
+            println!("{h} x {w}: area {area}");
+            combinations.push(area);
+        }
+    }
+    let max = combinations
+        .iter()
+        .copied()
+        .max()
+        .ok_or(anyhow!("empty combinations??"))?;
+
+    Ok(format!("{max}"))
 }
 
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
