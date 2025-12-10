@@ -87,32 +87,3 @@ fn draw_line(grid: &mut Grid<Tile>, one: Coords, two: Coords) {
         }
     }
 }
-
-fn load_grid(input: &str) -> anyhow::Result<Grid<Tile>> {
-    // I am going to cheat. After peeping the inputs, we need a width and height of 100,000.
-    let storage = vec![Tile::Nah; 100000 * 100000];
-    let mut grid = Grid::try_new(100000, storage)?;
-    let reds = input
-        .lines()
-        .map(make_coords)
-        .collect::<anyhow::Result<Vec<Coords>>>()?;
-    // The coords are connected pairwise and they loop. This handles almost all of em...
-    let a = reds[0..(reds.len() - 1)].iter();
-    let b = reds[1..reds.len()].iter();
-    let z = a.zip(b);
-    for (&one, &two) in z {
-        draw_line(&mut grid, one, two);
-    }
-    // and here's the last
-    draw_line(&mut grid, reds[reds.len() - 1], reds[0]);
-
-    // then we need to green out the inner ones...
-    // uhhh
-    for y in 0_usize..100000 {
-        let mut start = grid.index((0, y)).expect("hey");
-        let mut end = grid.index((grid.width, y)).expect("hey");
-        while start < end && grid.storage[start] ==
-    }
-
-    Err(anyhow!("lol"))
-}
