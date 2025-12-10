@@ -16,9 +16,9 @@ const _EXAMPLE: &str = "[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
 ";
 
 struct Machine {
-    light_state: Vec<bool>,
-    desired_lights: Vec<bool>,
-    buttons: Vec<Vec<usize>>,
+    light_state: u32,
+    desired_lights: u32,
+    buttons: Vec<u32>,
     joltage_reqs: Vec<usize>,
 }
 
@@ -27,26 +27,30 @@ impl Machine {}
 fn my_machine(line: &str) -> Option<Machine> {
     let mut stuff = line.split(' ');
     let lights = stuff.next()?.strip_prefix('[')?.strip_suffix(']')?.chars();
-    let desired_lights = lights
-        .map(|c| match c {
-            '.' => Some(false),
-            '#' => Some(true),
-            _ => None,
-        })
-        .collect::<Option<Vec<bool>>>()?;
-    let mut buttons = Vec::<Vec<usize>>::new();
+    let mut desired_lights = 0u32;
+    for light in lights.filter_map(|c| match c {
+        '.' => Some(0_u32),
+        '#' => Some(1_u32),
+        _ => None,
+    }) {
+        desired_lights = (desired_lights << 1) + light;
+    }
+    let mut buttons = Vec::<u32>::new();
     let mut joltage_reqs: Option<Vec<usize>> = None;
     for item in stuff {
         match item.as_bytes()[0] {
             b'(' => {
                 // button
-                let button: Option<Vec<usize>> = item
+                let mut button = 0_u32;
+                for position in item
                     .strip_prefix('(')?
                     .strip_suffix(')')?
                     .split(',')
-                    .map(|d| d.parse::<usize>().ok())
-                    .collect();
-                buttons.push(button?);
+                    .filter_map(|d| d.parse::<u32>().ok())
+                {
+                    button += 1u32 << position;
+                }
+                buttons.push(button);
             }
             b'{' => {
                 joltage_reqs = item
@@ -63,7 +67,7 @@ fn my_machine(line: &str) -> Option<Machine> {
     }
 
     Some(Machine {
-        light_state: vec![false; desired_lights.len()],
+        light_state: 0,
         desired_lights,
         buttons,
         joltage_reqs: joltage_reqs?,
