@@ -9,7 +9,7 @@ fn part1_test() {
 
 #[test]
 fn part2_test() {
-    assert_eq!(part2(_EXAMPLE).expect("should ok"), "LOL".to_string());
+    assert_eq!(part2(_EXAMPLE).expect("should ok"), "33".to_string());
 }
 
 /// Ignore `{joltage requirements}` and determine the fewest button presses
@@ -23,6 +23,9 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
     Ok(format!("{grand_total}"))
 }
 
+/// OK, now multiple button presses matter. Find minimum # of button presses to
+/// make the joltage levels match the joltage requirements. YIKES. Is bruting
+/// this out of the question?
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
     Err(anyhow!("not implemented"))
 }
