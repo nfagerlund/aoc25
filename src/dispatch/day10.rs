@@ -226,7 +226,7 @@ impl Iterator for CombinateIndicesUnrepeated {
 }
 
 #[test]
-fn combinate_indices_test() {
+fn combinate_indices_unrepeating_test() {
     let thing = CombinateIndicesUnrepeated::try_new(0..5, 3).unwrap();
     let expect: Vec<Vec<usize>> = vec![
         vec![0, 1, 2],
@@ -250,4 +250,130 @@ fn combinate_indices_test() {
 
     let wrong = CombinateIndicesUnrepeated::try_new(0..5, 6);
     assert!(wrong.is_err());
+}
+
+/// Ok, so this one would turn 3 of 0..5 into uhhhhh
+/// 000, 001, 002, 003, 004,
+/// 011, 012, 013, 014,
+/// 022, 023, 024,
+/// 033, 034,
+/// 044,
+/// and, like the pattern we've been seeing, 110 is equivalent to 011, so,
+/// 111, 112, 113, 114,
+/// 122, 123, 124,
+/// 133, 134,
+/// 144,
+/// 222, 223, 224,
+/// 233, 234,
+/// 244,
+/// 333, 334,
+/// 344,
+/// 444
+struct CombinateIndicesRepeated {
+    range: Range<usize>,
+    state: Option<Vec<usize>>,
+}
+
+impl CombinateIndicesRepeated {
+    fn new(range: Range<usize>, num_elements: usize) -> Self {
+        // Oddly, there's no error state here. 6 of 0..5 could be [0,0,0,0,0,0].
+
+        // build initial state, with the first value we'll return
+        let mut state = vec![0_usize; num_elements];
+
+        Self {
+            range,
+            state: Some(state),
+        }
+    }
+}
+
+impl Iterator for CombinateIndicesRepeated {
+    type Item = Vec<usize>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // max goes down with every leftward step through the state.
+        let mut beyond_max = self.range.end;
+        let Some(ref mut state) = self.state else {
+            // done.
+            return None;
+        };
+        // Grab our result,
+        let res = state.clone();
+        // then advance the state. Walk backwards, trying to bump the highest
+        // position we can get away with.
+        let state_len = state.len();
+        for position in (0..state_len).rev() {
+            let mut val = state[position] + 1;
+            if val < beyond_max {
+                // we're good! walk back forward and re-set affected
+                // positions to their new minimums.
+                // THIS IS THE DIFFERENCE: the new forward minimum doesn't
+                // increase by position.
+                for slot in &mut state[position..state_len] {
+                    *slot = val;
+                    // val += 1;
+                }
+                return Some(res);
+            }
+            // we're not good! keep walking backward...
+            // ALSO I think we don't decrement our max this time.
+            // beyond_max -= 1;
+        }
+        // If we managed to escape the for-loop without early returning... I
+        // think we're out of headroom, i.e. our initial state before trying
+        // this woulda been, e.g., [4, 4, 4] in the "3 of 0..5" case. So burn the ships.
+        self.state = None;
+        // and return our last value.
+        Some(res)
+    }
+}
+
+#[test]
+fn combinate_indices_repeating_test() {
+    let thing = CombinateIndicesRepeated::new(0..5, 3);
+    let expect: Vec<Vec<usize>> = vec![
+        vec![0, 0, 0],
+        vec![0, 0, 1],
+        vec![0, 0, 2],
+        vec![0, 0, 3],
+        vec![0, 0, 4],
+        vec![0, 1, 1],
+        vec![0, 1, 2],
+        vec![0, 1, 3],
+        vec![0, 1, 4],
+        vec![0, 2, 2],
+        vec![0, 2, 3],
+        vec![0, 2, 4],
+        vec![0, 3, 3],
+        vec![0, 3, 4],
+        vec![0, 4, 4],
+        vec![1, 1, 1],
+        vec![1, 1, 2],
+        vec![1, 1, 3],
+        vec![1, 1, 4],
+        vec![1, 2, 2],
+        vec![1, 2, 3],
+        vec![1, 2, 4],
+        vec![1, 3, 3],
+        vec![1, 3, 4],
+        vec![1, 4, 4],
+        vec![2, 2, 2],
+        vec![2, 2, 3],
+        vec![2, 2, 4],
+        vec![2, 3, 3],
+        vec![2, 3, 4],
+        vec![2, 4, 4],
+        vec![3, 3, 3],
+        vec![3, 3, 4],
+        vec![3, 4, 4],
+        vec![4, 4, 4],
+    ];
+    let outcome: Vec<_> = thing.collect();
+    assert_eq!(outcome, expect);
+
+    let small = CombinateIndicesRepeated::new(0..1, 5);
+    let expect: Vec<Vec<usize>> = vec![vec![0, 0, 0, 0, 0]];
+    let outcome: Vec<_> = small.collect();
+    assert_eq!(outcome, expect);
 }
