@@ -78,7 +78,6 @@ fn bitlights_test() {
 
 #[derive(Debug)]
 struct Machine {
-    light_state: u32,
     desired_lights: u32,
     buttons: Vec<u32>,
     joltage_reqs: Vec<usize>,
@@ -143,7 +142,6 @@ fn my_machine(line: &str) -> Option<Machine> {
     }
 
     Some(Machine {
-        light_state: 0,
         desired_lights,
         buttons,
         joltage_reqs: joltage_reqs?,
@@ -154,7 +152,7 @@ fn my_machine(line: &str) -> Option<Machine> {
 /// [0, 2, 3], [0, 2, 4], [0, 3, 4], [1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]
 struct CombinateIndicesUnrepeated {
     range: Range<usize>,
-    num_elements: usize,
+    // state also encodes the number of elements, in its length.
     state: Option<Vec<usize>>, // None for done
 }
 
@@ -181,7 +179,6 @@ impl CombinateIndicesUnrepeated {
 
         Ok(Self {
             range,
-            num_elements,
             state: Some(state),
         })
     }
@@ -201,13 +198,14 @@ impl Iterator for CombinateIndicesUnrepeated {
         let res = state.clone();
         // then advance the state. Walk backwards, trying to bump the highest
         // position we can get away with.
-        for position in (0..state.len()).rev() {
+        let state_len = state.len();
+        for position in (0..state_len).rev() {
             let mut val = state[position] + 1;
             if val < beyond_max {
                 // we're good! walk back forward and re-set affected
                 // positions to their new minimums.
-                for i in position..state.len() {
-                    state[i] = val;
+                for slot in &mut state[position..state_len] {
+                    *slot = val;
                     val += 1;
                 }
                 return Some(res);
