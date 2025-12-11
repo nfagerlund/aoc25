@@ -27,7 +27,11 @@ pub fn part1(input: &str) -> Result<String, anyhow::Error> {
 /// make the joltage levels match the joltage requirements. YIKES. Is bruting
 /// this out of the question?
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
-    Err(anyhow!("not implemented"))
+    let mut grand_total = 0usize;
+    for machine in input.lines().filter_map(my_machine) {
+        grand_total += machine.brute_force_joltage_reqs()?;
+    }
+    Ok(format!("{grand_total}"))
 }
 
 const _EXAMPLE: &str = "[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
@@ -101,7 +105,7 @@ fn bitcount_test() {
 struct Machine {
     desired_lights: u32,
     buttons: Vec<u32>,
-    joltage_reqs: Vec<usize>,
+    joltage_reqs: Vec<u32>,
 }
 
 impl Machine {
@@ -128,6 +132,53 @@ impl Machine {
         // Oh... we didn't get anywhere.
         Err(anyhow!("Somehow wasn't able to solve it: {:?}", self))
     }
+
+    // /// Significantly nastier...
+    fn brute_force_joltage_reqs(&self) -> anyhow::Result<usize> {
+        // Oh wait..... no we can't. feck. Oh, but I guess we could set a floor.
+
+        let &lowest_joltage = self
+            .joltage_reqs
+            .iter()
+            .min()
+            .ok_or(anyhow!("hey whys that empty"))?;
+        let total_joltage_ticks = self.joltage_reqs.iter().copied().sum::<u32>();
+        let smallest_button_effect = self
+            .buttons
+            .iter()
+            .map(|&b| bitcount_u32(b))
+            .min()
+            .ok_or(anyhow!("why oempty?"))?;
+        let min_presses = lowest_joltage as usize;
+        let max_presses = (total_joltage_ticks / smallest_button_effect) as usize;
+
+        let mut testbed = vec![0_u32; self.joltage_reqs.len()];
+        for num_presses in min_presses..=max_presses {
+            println!("trying {num_presses} presses...");
+            let combinations = CombinateIndicesRepeated::new(0..self.buttons.len(), num_presses);
+            for index_list in combinations {
+                testbed.fill(0);
+                for i in index_list {
+                    let mut button = self.buttons[i];
+                    let mut j_position = 0;
+                    while button > 0 {
+                        let active = button % 2 == 1;
+                        if active {
+                            testbed[j_position] += 1;
+                        }
+                        j_position += 1;
+                        button >>= 1;
+                    }
+                }
+                if testbed == self.joltage_reqs {
+                    println!("holy heck we did it: {num_presses}");
+                    return Ok(num_presses);
+                }
+            }
+        }
+
+        Err(anyhow!("welp, that didn't work."))
+    }
 }
 
 /// (quiet guitar, increasing tension)
@@ -136,7 +187,7 @@ fn my_machine(line: &str) -> Option<Machine> {
     let lights = stuff.next()?.strip_prefix('[')?.strip_suffix(']')?;
     let desired_lights = bitlights(lights).unwrap();
     let mut buttons = Vec::<u32>::new();
-    let mut joltage_reqs: Option<Vec<usize>> = None;
+    let mut joltage_reqs: Option<Vec<u32>> = None;
     for item in stuff {
         match item.as_bytes()[0] {
             b'(' => {
@@ -153,7 +204,7 @@ fn my_machine(line: &str) -> Option<Machine> {
                     .strip_prefix('{')?
                     .strip_suffix('}')?
                     .split(',')
-                    .map(|d| d.parse::<usize>().ok())
+                    .map(|d| d.parse::<u32>().ok())
                     .collect();
             }
             _ => {
