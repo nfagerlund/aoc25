@@ -79,6 +79,24 @@ fn bitlights_test() {
     assert_eq!(bitlights(".###.#").unwrap(), 0b101110);
 }
 
+/// Okay, listen, this is incredibly cursed, but
+/// https://web.archive.org/web/20151229003112/http://blogs.msdn.com/b/jeuge/archive/2005/06/08/hakmem-bit-count.aspx
+fn bitcount_u32(u: u32) -> u32 {
+    let u_count = u - ((u >> 1) & 0o33333333333) - ((u >> 2) & 0o11111111111);
+    ((u_count + (u_count >> 3)) & 0o30707070707) % 63
+}
+
+#[test]
+fn bitcount_test() {
+    let test = |val: u32, num_ones: u32| {
+        assert_eq!(bitcount_u32(val), num_ones);
+    };
+    test(0b10101010, 4);
+    test(0b00111, 3);
+    test(0b100000110, 3);
+    test(u32::MAX, 32);
+}
+
 #[derive(Debug)]
 struct Machine {
     desired_lights: u32,
