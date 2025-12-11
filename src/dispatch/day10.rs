@@ -2,10 +2,25 @@ use std::ops::Range;
 
 use anyhow::anyhow;
 
+#[test]
+fn part1_test() {
+    assert_eq!(part1(_EXAMPLE).expect("should ok"), "7".to_string());
+}
+
+#[test]
+fn part2_test() {
+    assert_eq!(part2(_EXAMPLE).expect("should ok"), "LOL".to_string());
+}
+
 /// Ignore `{joltage requirements}` and determine the fewest button presses
 /// needed to make the lights match the desired pattern.
 pub fn part1(input: &str) -> Result<String, anyhow::Error> {
-    Err(anyhow!("not implemented"))
+    let mut grand_total = 0_usize;
+    for machine in input.lines().filter_map(my_machine) {
+        grand_total += machine.brute_force_lights_button_counts()?;
+    }
+
+    Ok(format!("{grand_total}"))
 }
 
 pub fn part2(input: &str) -> Result<String, anyhow::Error> {
@@ -17,6 +32,51 @@ const _EXAMPLE: &str = "[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
 [.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}
 ";
 
+fn bitbutton(lights_activated: impl Iterator<Item = u32>) -> u32 {
+    let mut res = 0_u32;
+    for position in lights_activated {
+        res += 1_u32 << position;
+    }
+    res
+}
+
+#[test]
+fn bitbutton_test() {
+    let test = |slice: &[u32], bits: u32| {
+        assert_eq!(bitbutton(slice.iter().copied()), bits);
+    };
+    test(&[3], 0b1000);
+    test(&[1, 3], 0b1010);
+    test(&[0, 2, 3, 4], 0b11101);
+}
+
+/// A bitlight has to be assembled in REVERSE binary place-order! Because the
+/// leftmost listed light has to correspond to a named light position of 0
+/// (rightmost in a binary number).
+fn bitlights(l_str: &str) -> anyhow::Result<u32> {
+    let mut res = 0_u32;
+    for (i, c) in l_str.chars().enumerate() {
+        let bit = match c {
+            '.' => 0u32,
+            '#' => 1u32,
+            _ => {
+                return Err(anyhow!("parse err for bit char"));
+            }
+        };
+        res += bit << i;
+    }
+    Ok(res)
+}
+
+#[test]
+fn bitlights_test() {
+    // remember we put our thing down flipped it and reversed it
+    assert_eq!(bitlights(".##.").unwrap(), 0b0110);
+    assert_eq!(bitlights("...#.").unwrap(), 0b01000);
+    assert_eq!(bitlights(".###.#").unwrap(), 0b101110);
+}
+
+#[derive(Debug)]
 struct Machine {
     light_state: u32,
     desired_lights: u32,
@@ -24,35 +84,49 @@ struct Machine {
     joltage_reqs: Vec<usize>,
 }
 
-impl Machine {}
+impl Machine {
+    /// Okay, so this is a variant on Lights Out. I do NOT know enough linear
+    /// algebra to solve it analytically. But I DO know that 1. non-same button
+    /// presses are commutative, and 2. pressing the same button twice is the
+    /// same as never pressing it. That's enough to be able to beast it. I think.
+    fn brute_force_lights_button_counts(&self) -> anyhow::Result<usize> {
+        // iter all combinations in increasing magnitude, and early exit when successful.
+        for num_presses in 1..=(self.buttons.len()) {
+            let combinations =
+                CombinateIndicesUnrepeated::try_new(0..self.buttons.len(), num_presses)?;
+            for index_list in combinations {
+                let mut result = 0_u32;
+                for i in index_list {
+                    result ^= self.buttons[i];
+                }
+                if result == self.desired_lights {
+                    return Ok(num_presses);
+                }
+            }
+        }
 
+        // Oh... we didn't get anywhere.
+        Err(anyhow!("Somehow wasn't able to solve it: {:?}", self))
+    }
+}
+
+/// (quiet guitar, increasing tension)
 fn my_machine(line: &str) -> Option<Machine> {
     let mut stuff = line.split(' ');
-    let lights = stuff.next()?.strip_prefix('[')?.strip_suffix(']')?.chars();
-    let mut desired_lights = 0u32;
-    for light in lights.filter_map(|c| match c {
-        '.' => Some(0_u32),
-        '#' => Some(1_u32),
-        _ => None,
-    }) {
-        desired_lights = (desired_lights << 1) + light;
-    }
+    let lights = stuff.next()?.strip_prefix('[')?.strip_suffix(']')?;
+    let desired_lights = bitlights(lights).unwrap();
     let mut buttons = Vec::<u32>::new();
     let mut joltage_reqs: Option<Vec<usize>> = None;
     for item in stuff {
         match item.as_bytes()[0] {
             b'(' => {
                 // button
-                let mut button = 0_u32;
-                for position in item
+                let positions = item
                     .strip_prefix('(')?
                     .strip_suffix(')')?
                     .split(',')
-                    .filter_map(|d| d.parse::<u32>().ok())
-                {
-                    button += 1u32 << position;
-                }
-                buttons.push(button);
+                    .map(|d| d.parse::<u32>().expect("come on, man!!!"));
+                buttons.push(bitbutton(positions));
             }
             b'{' => {
                 joltage_reqs = item
@@ -74,16 +148,6 @@ fn my_machine(line: &str) -> Option<Machine> {
         buttons,
         joltage_reqs: joltage_reqs?,
     })
-}
-
-#[test]
-fn part1_test() {
-    assert_eq!(part1(_EXAMPLE).expect("should ok"), "7".to_string());
-}
-
-#[test]
-fn part2_test() {
-    assert_eq!(part2(_EXAMPLE).expect("should ok"), "LOL".to_string());
 }
 
 /// A lil iterator for doing like... "3 of 0..5" -> [0, 1, 2], [0, 1, 3], [0, 1, 4],
