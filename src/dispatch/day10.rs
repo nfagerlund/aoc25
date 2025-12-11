@@ -279,7 +279,7 @@ impl CombinateIndicesRepeated {
         // Oddly, there's no error state here. 6 of 0..5 could be [0,0,0,0,0,0].
 
         // build initial state, with the first value we'll return
-        let mut state = vec![0_usize; num_elements];
+        let state = vec![0_usize; num_elements];
 
         Self {
             range,
@@ -293,7 +293,7 @@ impl Iterator for CombinateIndicesRepeated {
 
     fn next(&mut self) -> Option<Self::Item> {
         // max goes down with every leftward step through the state.
-        let mut beyond_max = self.range.end;
+        let beyond_max = self.range.end;
         let Some(ref mut state) = self.state else {
             // done.
             return None;
@@ -304,7 +304,7 @@ impl Iterator for CombinateIndicesRepeated {
         // position we can get away with.
         let state_len = state.len();
         for position in (0..state_len).rev() {
-            let mut val = state[position] + 1;
+            let val = state[position] + 1;
             if val < beyond_max {
                 // we're good! walk back forward and re-set affected
                 // positions to their new minimums.
